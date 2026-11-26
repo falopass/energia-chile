@@ -19,7 +19,7 @@ El sitio actual repite la plantilla compartida y además suma vicios propios:
 | `src/data/generated.json`, `src/lib/calc.js` y los textos base de `src/lib/guides.js` | `src/public/styles.css` |
 | el router de `src/worker.js`, las 3.000 URLs, el sitemap, robots, ads.txt e IndexNow | `src/lib/render.js` (las plantillas) |
 | los tests numéricos de `scripts/test.mjs` | la capa DOM de `src/public/app.js` |
-| | la regla anti-SVG de `scripts/test.mjs:59-74` |
+| | la regla anti-SVG de `scripts/test.mjs:59-74`, la prueba que exige un PNG en `/favicon.ico` (`scripts/test.mjs:51-56`) y la que exige el selector antiguo en todas las rutas (`scripts/test.mjs:60-66`). Se migran a aserciones del frontend nuevo: ICO real, buscador único y ningún selector en las guías |
 
 Se prohíben las clases, los tokens y la estructura anteriores: `.tool-card`, `.tool-switch`, `.energy-profile` y `.brand-mark`.
 
@@ -80,7 +80,11 @@ Se mantienen las 3.000 URLs.
 ### 4.1 Home `/`
 1. **Header** (56 px): logo, «Consumo», «Aire y calefacción», «Paneles solares», «Tarifas» y «Guías».
 2. **Primera pantalla · el Meridiano.**
-   - **Columna principal:** H1 «¿Cuánto te cuesta la energía en tu comuna?», el **buscador único de comuna** (no hay un `<select>` con 328 opciones) y el **selector de modo** en píldora: Consumo · Aire/Calefacción · Solar. **Elegir una comuna lleva al modo elegido.** Ya no salta siempre a paneles solares.
+   - **Columna principal:** H1 «¿Cuánto te cuesta la energía en tu comuna?», el **buscador único de comuna** (no hay un `<select>` con 328 opciones) y el **selector de modo** en píldora: Consumo · Aire/Calefacción · Solar. **Flujo:** elegir una comuna **no navega de inmediato**. Primero actualiza en la portada la fila «Tres datos de tu comuna» y el cursor del meridiano, y muestra un botón principal según el modo activo:
+     - en **Aire/Calefacción**, «Ver BTU en {comuna}», que lleva a `/btu/{comuna}/`;
+     - en **Solar**, «Ver paneles en {comuna}», que lleva a `/paneles-solares/{comuna}/`;
+     - en **Consumo**, aparece primero un selector de aparato con los 7 del sitio y su pictograma, y el botón «Ver consumo» lleva a `/consumo-electrico/{aparato}/{comuna}/`.
+     Ya no salta siempre a paneles solares.
    - **Columna derecha (escritorio), arriba compacto (móvil):** el **perfil SVG de Chile** con las 16 regiones, que se recorre con el puntero, el teclado o el arrastre.
      - El cursor de latitud muestra la región, la tarifa BT1 media y la radiación media.
      - En móvil, el meridiano se acuesta y pasa a ser una barra horizontal norte→sur, con 64 px de alto como máximo.
@@ -119,11 +123,13 @@ Se mantienen las 3.000 URLs.
 - **Institucionales:** formato editorial, con cada fuente fechada.
 - **404:** el meridiano con el cursor perdido, el mensaje «Esta comuna no está en el mapa» y el buscador.
 
+> **Tarifa media de región:** es el promedio simple de la primera tarifa marginal BT1 de todas las comunas de la región, calculado desde `src/data/generated.json`. Por ejemplo, La Araucanía da $293,08/kWh; los $303,35 son el máximo, no la media. La UI siempre rotula «media» o «máx.».
+
 ## 5. Componentes
 - **`Meridiano`:** el SVG del contorno de Chile, simplificado a menos de 35 KB, con 16 `<path>` de región.
   - Funciona como `role="slider"` vertical (horizontal en móvil), con flechas, PageUp/PageDown y Home/End.
   - Cada región lleva `aria-label`.
-  - El resumen va en `aria-live`: «Región de La Araucanía, 38,7°S, tarifa media $303/kWh».
+  - El resumen va en `aria-live`: «Región de La Araucanía, 38,7°S, tarifa media $293/kWh».
 - **`BuscadorComuna`:** combobox accesible que carga el índice de 328 comunas bajo demanda (al enfocar). Corrige la concordancia: «1 comuna disponible».
 - **`SelectorModo`:** una píldora de 3 opciones, un único control. No hay pestañas duplicadas.
 - **`AnilloBoleta`:** se adapta de `PIE-005`, sin glow y con la paleta propia.
