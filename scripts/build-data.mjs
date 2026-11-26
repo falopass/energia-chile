@@ -21,43 +21,43 @@ const DISTRIBUTOR_PRIORITY = [
 
 const APPLIANCES = [
   {
-    slug: 'refrigerador', name: 'refrigerador', plural: 'refrigeradores', watts: 110, hoursPerDay: 12,
+    slug: 'refrigerador', article: 'un', name: 'refrigerador', plural: 'refrigeradores', watts: 110, hoursPerDay: 12,
     inputLabel: 'potencia promedio mientras el compresor trabaja', defaultUse: '24 horas conectado; el compresor trabaja en ciclos',
     benchmarkKwhMonth: 39.6,
     tip: 'La etiqueta E2.0 informa el consumo mensual del modelo: úsala antes que la potencia nominal cuando compres.'
   },
   {
-    slug: 'aire-acondicionado', name: 'aire acondicionado', plural: 'aires acondicionados', watts: 1090, hoursPerDay: 3,
+    slug: 'aire-acondicionado', article: 'un', name: 'aire acondicionado', plural: 'aires acondicionados', watts: 1090, hoursPerDay: 3,
     inputLabel: 'potencia eléctrica de un split inverter de 12.000 BTU', defaultUse: '3 horas diarias en días de uso intenso',
     benchmarkKwhMonth: 32.7,
     tip: 'La potencia cambia con la carga; un inverter suele operar buena parte del tiempo bajo su máximo.'
   },
   {
-    slug: 'lavadora', name: 'lavadora', plural: 'lavadoras', watts: 600, hoursPerDay: 0.4,
+    slug: 'lavadora', article: 'una', name: 'lavadora', plural: 'lavadoras', watts: 600, hoursPerDay: 0.4,
     inputLabel: 'potencia promedio de un ciclo con agua fría', defaultUse: '12 ciclos de una hora al mes',
     benchmarkKwhMonth: 7.2,
     tip: 'Lavar con agua fría y cargas completas evita el mayor consumo asociado a calentar agua.'
   },
   {
-    slug: 'microondas', name: 'microondas', plural: 'microondas', watts: 1200, hoursPerDay: 0.4,
+    slug: 'microondas', article: 'un', name: 'microondas', plural: 'microondas', watts: 1200, hoursPerDay: 0.4,
     inputLabel: 'potencia de salida de un microondas hogareño', defaultUse: '24 minutos diarios',
     benchmarkKwhMonth: 14.4,
     tip: 'Su potencia es alta, pero el uso es corto: los minutos reales mandan más que el tamaño del equipo.'
   },
   {
-    slug: 'freidora-de-aire', name: 'freidora de aire', plural: 'freidoras de aire', watts: 1400, hoursPerDay: 0.5,
+    slug: 'freidora-de-aire', article: 'una', name: 'freidora de aire', plural: 'freidoras de aire', watts: 1400, hoursPerDay: 0.5,
     inputLabel: 'potencia típica de una freidora familiar', defaultUse: '30 minutos diarios',
     benchmarkKwhMonth: 21,
     tip: 'Cocinar varias porciones en una sola tanda reduce el tiempo total encendida.'
   },
   {
-    slug: 'ventilador', name: 'ventilador', plural: 'ventiladores', watts: 60, hoursPerDay: 6,
+    slug: 'ventilador', article: 'un', name: 'ventilador', plural: 'ventiladores', watts: 60, hoursPerDay: 6,
     inputLabel: 'potencia de un ventilador de pie en velocidad media', defaultUse: '6 horas diarias',
     benchmarkKwhMonth: 10.8,
     tip: 'Un ventilador consume una fracción de un aire acondicionado, aunque no baja la temperatura del aire.'
   },
   {
-    slug: 'television', name: 'televisión LED', plural: 'televisiones LED', watts: 100, hoursPerDay: 4,
+    slug: 'television', article: 'una', name: 'televisión LED', plural: 'televisiones LED', watts: 100, hoursPerDay: 4,
     inputLabel: 'potencia de una TV LED de 50 a 55 pulgadas', defaultUse: '4 horas diarias',
     benchmarkKwhMonth: 12,
     tip: 'El brillo alto y los modos tienda elevan el consumo; el modo cine/ahorro suele bastar en casa.'

@@ -64,11 +64,13 @@ export function solarCostPerWp(kwp) {
   return 1080;
 }
 
-export function solarCalculation({ monthlyKwh, coverage = 0.8, ghiDay, priceKwh, injectionKwh, panelW = 550, selfConsumption = 0.72, costPerWp }) {
+export function solarCalculation({ monthlyKwh, coverage = 0.8, ghiDay, priceKwh, injectionKwh, panelW = 550, selfConsumption = 0.72, costPerWp, roofAvailable = Infinity }) {
   const performanceRatio = 0.78;
   const yieldKwpYear = ghiDay * 365 * performanceRatio;
   const targetKwpRaw = monthlyKwh * 12 * coverage / yieldKwpYear;
-  const panels = Math.max(1, Math.ceil(targetKwpRaw * 1000 / panelW));
+  const targetPanels = Math.max(1, Math.ceil(targetKwpRaw * 1000 / panelW));
+  const maxPanels = Number.isFinite(roofAvailable) ? Math.max(1, Math.floor(roofAvailable * 0.22 * 1000 / panelW)) : targetPanels;
+  const panels = Math.min(targetPanels, maxPanels);
   const installedKwp = panels * panelW / 1000;
   const generationYear = installedKwp * yieldKwpYear;
   const generationMonth = generationYear / 12;

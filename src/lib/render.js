@@ -1,414 +1,163 @@
-import { nf, nf1, nf2, clp, num, pct, slugify, applianceCalculation, btuCalculation, solarCalculation, monthlyBillEstimate } from './calc.js';
+import { clp, num, nf, applianceCalculation, btuCalculation, solarCalculation } from './calc.js';
+import { regionalData } from './local-data.js';
+import { PAGES } from './editorial.js';
+import ASSETS from '../data/assets.json';
 
-export function esc(value) {
-  return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+export const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const json = value => JSON.stringify(value).replace(/</g, '\\u003c');
+const titleCase = name => name[0].toUpperCase() + name.slice(1);
+const articleName = a => `${a.article} ${a.name}`;
+const modes = [['consumo', 'Consumo', '/consumo-electrico/'], ['btu', 'Aire/Calefacción', '/btu/'], ['solar', 'Solar', '/paneles-solares/']];
+const monthNames = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const slot = '<aside class="ad-space" aria-label="Espacio publicitario reservado"><span>Publicidad</span></aside>';
+
+function schema(type, values) { return { '@context': 'https://schema.org', '@type': type, ...values }; }
+function localSchemas(c, path, title, answer) {
+  return [
+    schema('WebApplication', { name: title, url: path, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Web browser', offers: { '@type': 'Offer', price: '0', priceCurrency: 'CLP' } }),
+    schema('Place', { name: c.name, address: { '@type': 'PostalAddress', addressRegion: c.region, addressCountry: 'CL' }, geo: { '@type': 'GeoCoordinates', latitude: c.lat, longitude: c.lon } }),
+    schema('FAQPage', { mainEntity: [{ '@type': 'Question', name: title, acceptedAnswer: { '@type': 'Answer', text: answer } }] })
+  ];
 }
-
-function abs(origin, path) {
-  return `${origin}${path}`;
+export function layout({ origin, path, title, description, children, jsonLd = [], image }) {
+  image ||= path.startsWith('/paneles-solares/') ? '/brand/og/og-solar-base.png' : path.startsWith('/btu/') ? '/brand/og/og-btu-base.png' : path.startsWith('/consumo-electrico/') ? '/brand/og/og-consumo-base.png' : path.startsWith('/guias/') ? '/brand/og/og-guias-base.png' : path === '/tarifas/' ? '/brand/og/og-tarifas.webp' : '/brand/og/og-home.webp';
+  const crumbs = [{ '@type': 'ListItem', position: 1, name: 'Inicio', item: origin + '/' }];
+  if (path !== '/') crumbs.push({ '@type': 'ListItem', position: 2, name: title, item: origin + path });
+  const schemas = [schema('BreadcrumbList', { itemListElement: crumbs }), ...jsonLd];
+  const links = [['Consumo','/consumo-electrico/'],['Aire y calefacción','/btu/'],['Paneles solares','/paneles-solares/'],['Tarifas','/tarifas/'],['Guías','/guias/']];
+  return `<!doctype html><html lang="es-CL"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><meta name="description" content="${esc(description)}"><link rel="canonical" href="${esc(origin + path)}"><meta name="robots" content="${path === '/404/' ? 'noindex,follow' : 'index,follow,max-image-preview:large'}"><meta property="og:type" content="website"><meta property="og:locale" content="es_CL"><meta property="og:site_name" content="Energía Chile"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(origin + path)}"><meta property="og:image" content="${esc(origin + image)}"><meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#1B36B8"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preload" href="${ASSETS['epilogue-latin']}" as="font" type="font/woff2" crossorigin><link rel="preload" href="${ASSETS['ibm-plex-sans-latin']}" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${ASSETS.styles}">${schemas.map(s=>`<script type="application/ld+json">${json(s)}</script>`).join('')}</head><body><a class="skip" href="#contenido">Saltar al contenido</a><header class="masthead"><a href="/" aria-label="Energía Chile, inicio"><img class="wordmark" src="${ASSETS.logo}" width="204" height="60" alt="Energía Chile"></a><nav class="desktop-nav" aria-label="Principal">${links.map(([label,href])=>`<a href="${href}"${path.startsWith(href)?' aria-current="page"':''}>${label}</a>`).join('')}</nav><details class="mobile-nav"><summary>Menú</summary><nav aria-label="Principal móvil">${links.map(([label,href])=>`<a href="${href}"${path.startsWith(href)?' aria-current="page"':''}>${label}</a>`).join('')}<a href="/comunas/">Comunas</a></nav></details></header><main id="contenido">${children}</main><footer class="site-footer"><div><img src="${ASSETS.logo}" width="204" height="60" alt="Energía Chile" loading="lazy"><p>Una referencia local para decidir mejor.<br>Valores orientativos, no cotizaciones.</p></div><div><p>Fuentes: CNE/SEC y pliegos BT1, <time datetime="2026-11-01">01-11-2026</time>.<br>Clima: NASA POWER, climatología 2001–2025.</p><nav aria-label="Información del sitio">${[['Comunas','/comunas/'],['Metodología','/metodologia/'],['Fuentes','/fuentes/'],['Sobre nosotros','/sobre-nosotros/'],['Contacto','/contacto/'],['Privacidad','/privacidad/'],['Términos','/terminos/'],['Preguntas frecuentes','/preguntas-frecuentes/']].map(([n,p])=>`<a href="${p}">${n}</a>`).join('')}</nav></div></footer><script src="${ASSETS.app}" defer></script></body></html>`;
 }
-
-export function layout({ origin, path, title, description, children, jsonLd = [], image = null }) {
-  const canonical = abs(origin, path);
-  const local = path.match(/^\/(?:btu|paneles-solares)\/([a-z0-9-]+)\/$/)?.[1] || path.match(/^\/consumo-electrico\/[a-z0-9-]+\/([a-z0-9-]+)\/$/)?.[1];
-  const tools = [['Consumo eléctrico', local ? `/consumo-electrico/refrigerador/${local}/` : '/consumo-electrico/', 'consumo-electrico'], ['BTU y climatización', local ? `/btu/${local}/` : '/btu/', 'btu'], ['Paneles solares', local ? `/paneles-solares/${local}/` : '/paneles-solares/', 'paneles-solares']];
-  const toolNav = `<nav class="tool-switch container" aria-label="Seleccionar herramienta">${tools.map(([name, href, prefix], i) => `<a class="tool-tab tab-${i}" href="${href}" ${path.startsWith('/' + prefix + '/') ? 'aria-current="page"' : ''}><small>0${i + 1}</small>${name}</a>`).join('')}</nav>`;
-  const schemas = jsonLd.filter(Boolean).map(item => `<script type="application/ld+json">${JSON.stringify(item).replace(/</g, '\\u003c')}</script>`).join('\n');
-  return `<!doctype html>
-<html lang="es-CL">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(title)}</title>
-<meta name="description" content="${esc(description)}">
-<link rel="canonical" href="${esc(canonical)}">
-<meta name="robots" content="index,follow,max-image-preview:large">
-<meta property="og:type" content="website">
-<meta property="og:locale" content="es_CL">
-<meta property="og:site_name" content="Energía Chile">
-<meta property="og:title" content="${esc(title)}">
-<meta property="og:description" content="${esc(description)}">
-<meta property="og:url" content="${esc(canonical)}">
-${image ? `<meta property="og:image" content="${esc(abs(origin, image))}">` : ''}
-<meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#0E1F38">
-<link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
-<link rel="stylesheet" href="/assets/styles.css?v=andean-2">
-${schemas}
-</head>
-<body>
-<a class="skip" href="#contenido">Saltar al contenido</a>
-<header class="topbar">
-  <div class="container nav">
-    <a class="brand" href="/" aria-label="Energía Chile, inicio">
-      <span class="brand-mark" aria-hidden="true">EC<span class="brand-line"></span></span>
-      <span>Energía Chile<small>datos locales · CLP</small></span>
-    </a>
-    <nav class="nav-links" aria-label="Navegación principal">
-      <a href="/consumo-electrico/">Consumo</a>
-      <a href="/btu/">BTU</a>
-      <a href="/paneles-solares/">Solar</a>
-      <a href="/tarifas/">Tarifas</a>
-      <a href="/comunas/">Comunas</a>
-      <a href="/guias/">Guías</a>
-      <a class="nav-cta" href="/#herramientas">Calcular</a>
-    </nav>
-  </div>
-</header>
-<main id="contenido">${path === '/' ? children.replace('<section class="section" id="herramientas">', `${toolNav}<section class="section" id="herramientas">`) : toolNav + children}</main>
-<footer class="footer">
-  <div class="container">
-    <div class="footer-grid">
-      <div>
-        <a class="brand" href="/" style="color:#fff"><span class="brand-mark" aria-hidden="true">EC</span><span>Energía Chile<small>referencia independiente</small></span></a>
-        <p class="muted" style="margin-top:16px">Calculadoras y datos públicos para entender el consumo eléctrico, dimensionar aire acondicionado y estimar generación solar en comunas de Chile.</p>
-      </div>
-      <div><h3>Herramientas</h3><div class="footer-links"><a href="/consumo-electrico/">Consumo por aparato</a><a href="/btu/">Calculadora BTU</a><a href="/paneles-solares/">Paneles solares</a><a href="/tarifas/">Tarifas BT1</a></div></div>
-      <div><h3>Datos</h3><div class="footer-links"><a href="/comunas/">Todas las comunas</a><a href="/metodologia/">Metodología</a><a href="/fuentes/">Fuentes oficiales</a><a href="/preguntas-frecuentes/">Preguntas frecuentes</a></div></div>
-      <div><h3>Sitio</h3><div class="footer-links"><a href="/sobre-nosotros/">Sobre nosotros</a><a href="/contacto/">Contacto</a><a href="/privacidad/">Privacidad</a><a href="/terminos/">Términos</a></div></div>
-    </div>
-    <div class="footer-bottom"><span>${new Date().getFullYear()} Energía Chile. Información referencial, verifica siempre tu boleta y pliego tarifario.</span><span>Datos tarifarios vigentes al 01-11-2026 · Clima NASA POWER</span></div>
-  </div>
-</footer>
-<script src="/assets/app.js?v=andean-2" defer></script>
-</body>
-</html>`;
-}
-
 export function breadcrumbs(items) {
-  return `<nav class="breadcrumbs container" aria-label="Ruta de navegación"><ol>${items.map((item, i) => `<li>${i < items.length - 1 ? `<a href="${esc(item.href)}">${esc(item.name)}</a>` : `<span aria-current="page">${esc(item.name)}</span>`}</li>`).join('')}</ol></nav>`;
+  return `<nav class="breadcrumbs" aria-label="Ruta de navegación"><ol>${items.map((c,i)=>`<li>${i < items.length-1 ? `<a href="${esc(c.href)}">${esc(c.name)}</a>` : `<span aria-current="page">${esc(c.name)}</span>`}</li>`).join('')}</ol></nav>`;
 }
-
-function icon(type) {
-  return `<span class="technical-symbol" aria-hidden="true">${type === 'sun' ? 'kWp' : type === 'air' ? 'BTU' : 'kWh'}</span>`;
+function search(c = null, mode = 'consumo', appliance = 'refrigerador') {
+  return `<div class="commune-search" data-search data-mode="${mode}" data-appliance="${appliance}"${c ? ` data-selected="${esc(c.slug)}"` : ''}><label for="comuna-search">Tu comuna</label><input id="comuna-search" name="comuna-search" type="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="comuna-results" autocomplete="off" placeholder="Escribe una comuna o región" value="${c ? esc(c.name) : ''}"><ul id="comuna-results" role="listbox" aria-label="Comunas" hidden></ul><p class="search-status" role="status">Busca entre 328 comunas</p><a class="search-action primary" href="${c ? localPath(mode, c.slug, appliance) : '/comunas/'}">${c ? `Ver ${mode === 'btu' ? 'BTU' : mode === 'solar' ? 'paneles' : 'consumo'} en ${esc(c.name)}` : 'Explorar comunas'}</a></div>`;
 }
-
-export function communeSelector(data, current = null, basePath = '') {
-  const options = data.communes.map(c => `<option value="${esc(basePath.replace('{comuna}', c.slug))}" ${current?.slug === c.slug ? 'selected' : ''}>${esc(c.name)} (${esc(c.region)})</option>`).join('');
-  return `<div class="selector-inline no-print" data-commune-picker><label for="comuna-search">Buscar entre ${data.communes.length} comunas<input id="comuna-search" type="search" placeholder="Escribe una comuna o región" autocomplete="off" data-commune-search></label><label for="comuna-select">Comuna para el cálculo<select id="comuna-select" data-jump-select><option value="">Selecciona una comuna…</option>${options}</select></label><span class="search-status" role="status" data-search-status>${data.communes.length} comunas disponibles</span></div>`;
+function localPath(mode, slug, appliance = 'refrigerador') { return mode === 'consumo' ? `/consumo-electrico/${appliance}/${slug}/` : mode === 'btu' ? `/btu/${slug}/` : `/paneles-solares/${slug}/`; }
+function modePill(c, active, a = 'refrigerador', home = false) {
+  return `<nav class="mode-pill" aria-label="Modo de cálculo">${modes.map(([mode,label,href])=>home ? `<button type="button" data-mode-button="${mode}" aria-pressed="${mode === active}">${label}</button>` : `<a href="${c ? localPath(mode,c.slug,a) : href}"${mode === active ? ' aria-current="page"' : ''}>${label}</a>`).join('')}</nav>`;
 }
-
-function applianceSelector(data, commune, current) {
-  return `<div class="selector-inline no-print"><label>Cambiar aparato<br><select data-jump-select><option value="">Selecciona un aparato…</option>${data.appliances.map(a => `<option value="/consumo-electrico/${a.slug}/${commune.slug}/" ${a.slug === current.slug ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label></div>`;
+function meridian(data, c = null) {
+  const regions = regionalData(data);
+  const index = Math.max(0, regions.findIndex(r=>r.slug === c?.regionSlug));
+  const lat = c?.lat ?? -33.4;
+  return `<aside class="meridian${c ? ' meridian-compact' : ''}" aria-label="Meridiano de Chile"><div class="meridian-scale" role="slider" tabindex="0" aria-label="Región en el meridiano de Chile" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="15" aria-valuenow="${index}" aria-valuetext="${esc(regions[index].name)}" data-regions="${esc(json(regions.map(r=>({name:r.name,slug:r.slug,lat:r.lat,price:r.price,commune:r.communes[0].slug}))))}"><div class="meridian-line" aria-hidden="true"></div>${regions.map((r,i)=>`<span class="region-tick${i % 2 ? ' tick-odd' : ''}" style="--latitude:${(Math.abs(r.lat)-18)/37*100}%" aria-hidden="true"><span>${esc(r.name.replace('del General Carlos Ibáñez del Campo','').replace('y de la Antártica Chilena',''))}</span></span>`).join('')}<span class="latitude-cursor" style="--latitude:${(Math.abs(lat)-18)/37*100}%" aria-hidden="true"></span></div><div class="latitude" data-latitude>${num(Math.abs(lat),1)}°S</div><p class="meridian-summary" aria-live="polite">${c ? esc(c.region) : 'Chile, de norte a sur'}</p></aside>`;
 }
-
-function formatDateCl(iso) {
-  const [y, m, d] = iso.split('-');
-  return `${d}-${m}-${y}`;
+function guideList(guides) {
+  return `<div class="editorial-links">${guides.map(g=>`<article><a href="${g.path}"><h3>${esc(g.title)}</h3></a><p>${esc(g.excerpt)}</p><small>${Math.max(1,Math.ceil(g.body.replace(/<[^>]+>/g,' ').split(/\s+/).length/180))} min de lectura</small></article>`).join('')}</div>`;
 }
-
-function dataStrip(commune, tariff) {
-  return `<div class="data-strip">
-    <div class="mini-stat"><b>${clp(tariff.marginalKwh, 2)}</b><span>costo variable por kWh con IVA</span></div>
-    <div class="mini-stat"><b>${clp(tariff.fixedMonthly)}</b><span>cargo fijo mensual con IVA</span></div>
-    <div class="mini-stat"><b>${num(commune.calc.climate.ghi, 2)} kWh/m²/día</b><span>radiación solar media anual</span></div>
-    <div class="mini-stat"><b>${num(commune.calc.climate.summerTempC, 1)}°C</b><span>temperatura media de verano</span></div>
-  </div>`;
+function regionBars(data) {
+  const regions=regionalData(data), max=Math.max(...regions.map(r=>r.price));
+  return `<section class="section regional-prices"><h2>De Arica a Punta Arenas</h2><p>Tarifa BT1 media por región, con IVA. Promedio simple de la primera tarifa de cada comuna.</p>${regions.map(r=>`<a class="horizontal-bar" href="/region/${r.slug}/"><span>${esc(r.name)}</span><span class="bar-track"><span style="width:${r.price/max*100}%"></span></span><strong>${clp(r.price,2)}<small>/kWh · media</small></strong></a>`).join('')}<p>La Araucanía: media ${clp(regions.find(r=>r.slug==='la-araucania').price,2)}/kWh. El máximo comunal es $303,35/kWh, no la media.</p></section>`;
 }
-
-export function applianceCalculator({ appliance, commune, tariff, compact = false }) {
-  const calc = applianceCalculation({ watts: appliance.watts, hoursPerDay: appliance.hoursPerDay, priceKwh: tariff.marginalKwh });
-  return `<section class="calculator" data-calculator="appliance" aria-labelledby="calc-title">
-    <div class="calc-grid">
-      <form class="calc-form" onsubmit="return false">
-        <span class="tag">calculadora editable</span>
-        <h2 id="calc-title" style="margin-top:12px">Calcula el costo mensual</h2>
-        <label>Potencia del equipo (W)<input type="number" inputmode="decimal" name="watts" min="1" max="10000" step="1" value="${appliance.watts}"></label>
-        <div class="field-row"><div><label>Horas de uso al día<input type="number" inputmode="decimal" name="hours" min="0" max="24" step="0.1" value="${appliance.hoursPerDay}"></label></div><div><label>Días al mes<input type="number" inputmode="numeric" name="days" min="1" max="31" step="1" value="30"></label></div></div>
-        <label>Precio variable por kWh (CLP)<input type="number" inputmode="decimal" name="price" min="1" max="500" step="0.01" value="${tariff.marginalKwh.toFixed(2)}"></label>
-        <p class="assumptions">Supuesto inicial: ${esc(appliance.defaultUse)}. Ajusta los campos con tu etiqueta, medidor enchufable o hábitos reales.</p>
-      </form>
-      <div class="calc-result">
-        <div class="result-main"><div class="result-label">Costo mensual estimado en ${esc(commune.name)}</div><div class="result-value" data-out="costMonth">${clp(calc.costMonth)}</div><div class="result-sub"><span data-out="kwhMonth">${num(calc.kwhMonth, 1)} kWh</span> al mes · precio variable ${clp(tariff.marginalKwh, 2)}/kWh</div></div>
-        <div class="result-grid">
-          <div class="mini-stat"><b data-out="costYear">${clp(calc.costYear)}</b><span>al año</span></div>
-          <div class="mini-stat"><b data-out="costHour">${clp(calc.costHour)}</b><span>por hora encendido</span></div>
-          <div class="mini-stat"><b data-out="share250">${num(calc.share250 * 100, 1)}%</b><span>de una boleta de 250 kWh</span></div>
-        </div>
-        <div class="comparison-bars" data-bill="${tariff.bill250}"><div class="bar-label"><span>Aparato / boleta tipo</span><b data-out="billShare">${num(calc.costMonth / tariff.bill250 * 100, 1)}%</b></div><div class="meter"><span data-appliance-meter style="--fill:${Math.min(100, calc.costMonth / tariff.bill250 * 100)}%"></span></div><p class="small muted">Boleta tipo de 250 kWh: ${clp(tariff.bill250)}, incluido cargo fijo. La barra se limita al 100%; el porcentaje no.</p></div>
-        <p class="assumptions">No incluye cargo fijo porque ya se paga aunque el aparato esté apagado. En ${esc(commune.name)}, ese cargo es ${clp(tariff.fixedMonthly)} mensuales con IVA.</p>
-      </div>
-    </div>
-  </section>`;
-}
-
-export function btuCalculator({ commune, tariff }) {
-  const calc = btuCalculation({ areaM2: 15, climate: { coolingBaseBtuhM2: commune.calc.coolingBaseBtuhM2, heatingBaseBtuhM2: commune.calc.heatingBaseBtuhM2 }, priceKwh: tariff.marginalKwh });
-  return `<section class="calculator" data-calculator="btu" aria-labelledby="btu-title">
-    <div class="calc-grid">
-      <form class="calc-form" onsubmit="return false">
-        <span class="tag blue">dimensionamiento orientativo</span>
-        <h2 id="btu-title" style="margin-top:12px">Calcula los BTU de tu espacio</h2>
-        <div class="field-row"><div><label>Superficie (m²)<input type="number" inputmode="decimal" name="area" min="4" max="200" step="0.5" value="15"></label></div><div><label>Altura (m)<input type="number" inputmode="decimal" name="height" min="2.2" max="5" step="0.1" value="2.5"></label></div></div>
-        <div class="field-row"><div><label>Personas habituales<input type="number" inputmode="numeric" name="occupants" min="1" max="15" step="1" value="2"></label></div><div><label>Ventanas (m²)<input type="number" inputmode="decimal" name="windows" min="0" max="30" step="0.5" value="2"></label></div></div>
-        <div class="field-row"><div><label>Orientación<select name="orientation"><option value="norte">Norte</option><option value="oriente">Oriente</option><option value="poniente">Poniente</option><option value="sur">Sur</option></select></label></div><div><label>Aislación<select name="insulation"><option value="normal">Normal</option><option value="buena">Buena</option><option value="deficiente">Deficiente</option></select></label></div></div>
-        <label>Uso principal<select name="mode"><option value="frio">Frío en verano</option><option value="calefaccion">Calefacción con bomba de calor</option></select></label>
-        <input type="hidden" name="baseCooling" value="${commune.calc.coolingBaseBtuhM2}">
-        <input type="hidden" name="baseHeating" value="${commune.calc.heatingBaseBtuhM2}">
-        <input type="hidden" name="price" value="${tariff.marginalKwh}">
-        <p class="assumptions">El clima local ya está incorporado: ${num(commune.calc.climate.summerTempC, 1)}°C de temperatura media estival y ${num(commune.calc.climate.winterTempC, 1)}°C promedio de invierno.</p>
-      </form>
-      <div class="calc-result">
-        <div class="result-main"><div class="result-label">Carga térmica estimada</div><div class="result-value" data-out="btu">${nf.format(Math.round(calc.raw))} BTU/h</div><div class="result-sub">Equipo comercial sugerido: <strong data-out="recommended">${nf.format(calc.recommended)} BTU</strong></div></div>
-        <div class="result-grid">
-          <div class="mini-stat"><b data-out="thermalKw">${num(calc.thermalKw, 2)} kW</b><span>capacidad térmica</span></div>
-          <div class="mini-stat"><b data-out="inputKw">${num(calc.inputKw, 2)} kW</b><span>potencia eléctrica ref.</span></div>
-          <div class="mini-stat"><b data-out="costMonth">${clp(calc.monthlyCost30h)}</b><span>por 30 h/mes en ${esc(commune.name)}</span></div>
-        </div>
-        <p class="assumptions">Para calefacción, el modo correspondiente usa el invierno local. No reemplaza el cálculo de un instalador para casas con doble altura, muro cortina o uso comercial.</p>
-      </div>
-    </div>
-  </section>`;
-}
-
-export function solarCalculator({ commune, tariff, monthlyKwh = 250 }) {
-  const calc = solarCalculation({ monthlyKwh, ghiDay: commune.calc.climate.ghi, priceKwh: tariff.marginalKwh, injectionKwh: tariff.energyKwh });
-  return `<section class="calculator" data-calculator="solar" aria-labelledby="solar-title">
-    <div class="calc-grid">
-      <form class="calc-form" onsubmit="return false">
-        <span class="tag sun">netbilling residencial</span>
-        <h2 id="solar-title" style="margin-top:12px">Dimensiona paneles solares</h2>
-        <div class="field-row"><div><label>Consumo mensual (kWh)<input type="number" inputmode="numeric" name="monthlyKwh" min="50" max="3000" step="10" value="${monthlyKwh}"></label></div><div><label>Cobertura objetivo (%)<input type="number" inputmode="numeric" name="coverage" min="20" max="100" step="5" value="80"></label></div></div>
-        <div class="field-row"><div><label>Radiación local (kWh/m²/día)<input type="number" inputmode="decimal" name="ghi" min="1" max="8" step="0.01" value="${commune.calc.climate.ghi}"></label></div><div><label>Panel (W)<input type="number" inputmode="numeric" name="panelW" min="300" max="700" step="10" value="550"></label></div></div>
-        <div class="field-row"><div><label>Autoconsumo (%)<input type="number" inputmode="numeric" name="selfConsumption" min="20" max="100" step="1" value="72"></label></div><div><label>Tarifa variable (CLP/kWh)<input type="number" inputmode="decimal" name="price" min="50" max="500" step="0.01" value="${tariff.marginalKwh}"></label></div></div>
-        <input type="hidden" name="injection" value="${tariff.energyKwh}">
-        <p class="assumptions">Costo referencial por tamaño residencial: $1.700–$1.080 por Wp instalado, más $115.877 de conexión SEC para sistemas ≤10 kW (valor 2025). No incluye financiamiento.</p>
-      </form>
-      <div class="calc-result">
-        <div class="result-main"><div class="result-label">Sistema sugerido</div><div class="result-value" data-out="kwp">${num(calc.installedKwp, 2)} kWp</div><div class="result-sub"><strong data-out="panels">${nf.format(calc.panels)} paneles</strong> · <span data-out="roof">${num(calc.roofM2, 1)} m²</span> de techo útil</div></div>
-        <div class="result-grid">
-          <div class="mini-stat"><b data-out="generation">${nf.format(Math.round(calc.generationYear))} kWh/año</b><span>generación esperada</span></div>
-          <div class="mini-stat"><b data-out="savings">${clp(calc.savingsMonth)}</b><span>ahorro mensual ref.</span></div>
-          <div class="mini-stat"><b data-out="payback">${num(calc.paybackYears, 1)} años</b><span>payback simple</span></div>
-        </div>
-        <p class="assumptions">Inversión estimada: <strong data-out="cost">${clp(calc.totalCost)}</strong>. Las inyecciones se valoran al cargo por energía local (${clp(tariff.energyKwh, 2)}/kWh), no a la tarifa completa.</p>
-      </div>
-    </div>
-  </section>`;
-}
-
-function monthlyChart(commune) {
-  const entries = Object.entries(commune.climate.monthly);
-  const max = Math.max(...entries.map(([, v]) => v.radiationKwhM2Day));
-  const bars = entries.map(([month, v], i) => `<div tabindex="0" style="height:${Math.max(4, v.radiationKwhM2Day / max * 100)}%;--delay:${i * 35}ms" aria-label="${month}: ${num(v.radiationKwhM2Day, 1)} kWh/m²/día" data-label="${month}: ${num(v.radiationKwhM2Day, 1)} kWh/m²/día"></div>`).join('');
-  const labels = ['E','F','M','A','M','J','J','A','S','O','N','D'].map(m => `<span>${m}</span>`).join('');
-  return `<figure class="solar-chart"><figcaption>Radiación mensual · NASA POWER <small>kWh/m²/día</small></figcaption><div class="chart" aria-label="Radiación solar mensual">${bars}</div><div class="chart-labels" aria-hidden="true">${labels}</div></figure>`;
-}
-
-function tariffTable(commune, data) {
-  const national = data.communes.reduce((sum, c) => sum + c.tariffs[0].marginalKwh, 0) / data.communes.length;
-  const rows = [...commune.tariffs.map(t => ({ label: t.distributorName, value: t.marginalKwh })), { label: 'Promedio nacional simple', value: national }];
-  const max = Math.max(...rows.map(r => r.value));
-  const comparison = `<div class="comparison-bars"><h3>Costo variable comparado</h3><p class="small muted">CLP/kWh con IVA. Promedio no ponderado de ${data.communes.length} comunas; la dirección define la distribuidora.</p>${rows.map(r => `<div class="bar-label"><span>${esc(r.label)}</span><b>${clp(r.value, 2)}/kWh</b></div><div class="meter"><span style="--fill:${r.value / max * 100}%"></span></div>`).join('')}</div>`;
-  return `<div class="table-wrap"><table><caption>Tarifas residenciales de ${esc(commune.name)} · valores con IVA</caption><thead><tr><th>Distribuidora</th><th class="num">Variable $/kWh</th><th class="num">Cargo fijo</th><th class="num">Boleta 250 kWh</th><th>Fuente</th></tr></thead><tbody>${commune.tariffs.map(t => `<tr><td><strong>${esc(t.distributorName)}</strong><br><span class="small muted">${esc(t.tariff)} · vigente ${formatDateCl(t.validFrom)}</span></td><td class="num mono">${clp(t.marginalKwh, 2)}</td><td class="num mono">${clp(t.fixedMonthly)}</td><td class="num mono">${clp(t.bill250)}</td><td>${t.pliegoUrl ? `<a href="${esc(t.pliegoUrl)}" rel="nofollow noopener" target="_blank">pliego oficial</a>` : 'pliego oficial'}</td></tr>`).join('')}</tbody></table></div>${comparison}`;
-}
-
-function communeFacts(commune, tariff) {
-  return `<div class="card"><h3>Datos locales usados</h3><div class="stat-list">
-    <div class="stat-line"><span>Distribuidora de referencia</span><b>${esc(tariff.distributorName)}</b></div>
-    <div class="stat-line"><span>Tarifa residencial</span><b>${esc(tariff.tariff)}</b></div>
-    <div class="stat-line"><span>Boleta tipo 250 kWh</span><b>${clp(tariff.bill250)}</b></div>
-    <div class="stat-line"><span>Radiación anual</span><b>${num(commune.calc.climate.ghi, 2)} kWh/m²/día</b></div>
-    <div class="stat-line"><span>Verano / invierno</span><b>${num(commune.calc.climate.summerTempC, 1)}°C / ${num(commune.calc.climate.winterTempC, 1)}°C</b></div>
-    <div class="stat-line"><span>Coordenadas usadas</span><b>${num(Math.abs(commune.lat), 3)}°S, ${num(Math.abs(commune.lon), 3)}°O</b></div>
-  </div></div>`;
-}
-
-function relatedCommunes(data, commune, pathTemplate, limit = 8) {
-  const near = data.communes.filter(c => c.region === commune.region && c.slug !== commune.slug).slice(0, limit);
-  return `<div class="link-list">${near.map(c => `<a href="${esc(pathTemplate.replace('{comuna}', c.slug))}"><span>${esc(c.name)}</span><small>${esc(c.province)}</small></a>`).join('')}</div>`;
-}
-
 export function homePage(data, origin) {
-  const cheapest = [...data.communes].sort((a, b) => a.tariffs[0].marginalKwh - b.tariffs[0].marginalKwh)[0];
-  const expensive = [...data.communes].sort((a, b) => b.tariffs[0].marginalKwh - a.tariffs[0].marginalKwh)[0];
-  const sunniest = [...data.communes].sort((a, b) => b.calc.climate.ghi - a.calc.climate.ghi)[0];
-  const examples = ['independencia', 'puente-alto', 'la-florida', 'maipu', 'iquique', 'concepcion', 'temuco', 'puerto-montt'].map(slug => data.communes.find(c => c.slug === slug)).filter(Boolean);
-  const children = `
-<section class="hero"><div class="container hero-grid"><div>
-  <span class="eyebrow">Chile · datos comunales · precios con IVA</span>
-  <h1>Entiende tu cuenta de luz antes de comprar, encender o instalar.</h1>
-  <p class="lead">Calculadoras de consumo eléctrico, BTU y paneles solares con tarifas residenciales reales por comuna, clima local NASA POWER y resultados editables en pesos chilenos.</p>
-  <div class="hero-actions"><a class="btn" href="/consumo-electrico/">Calcular consumo</a><a class="btn secondary" href="/paneles-solares/">Estimar paneles solares</a></div>
-  ${communeSelector(data, null, '/paneles-solares/{comuna}/')}
-</div><div class="hero-panel">
-  <div class="studio-heading">OBSERVATORIO RESIDENCIAL · ${nf.format(data.expectedIndexableUrls)} URLS <span>CL / 01</span></div>
-  <div class="energy-profile" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-  <div class="kpi"><div><b>${nf.format(data.communeCount)}</b><br><span>comunas con tarifa residencial procesada</span></div><span>comunas</span></div>
-  <div class="kpi"><div><b>${num(sunniest.calc.climate.ghi, 2)}</b><br><span>kWh/m²/día en ${esc(sunniest.name)}, el mejor potencial solar</span></div><span>radiación</span></div>
-  <div class="kpi"><div><b>${clp(cheapest.tariffs[0].marginalKwh, 0)}–${clp(expensive.tariffs[0].marginalKwh, 0)}</b><br><span>rango del costo variable por kWh entre comunas</span></div><span>tarifa</span></div>
-</div></div></section>
-<section class="section" id="herramientas"><div class="container"><div class="section-head"><div><h2>Tres herramientas, una misma pregunta: ¿cuánto me costará?</h2><p>Los resultados se calculan en la página y se pueden ajustar con tus propios hábitos, superficie o consumo mensual.</p></div></div><div class="grid-3">
-  <a class="card tool-card" href="/consumo-electrico/"><span class="tool-icon">${icon('bolt')}</span><h3>Consumo por aparato</h3><p>Refrigerador, aire acondicionado, lavadora, microondas, freidora de aire, ventilador y TV con la tarifa variable de cada comuna.</p><span class="card-link">Calcular consumo →</span></a>
-  <a class="card tool-card blue" href="/btu/"><span class="tool-icon">${icon('air')}</span><h3>Calculadora BTU</h3><p>Dimensiona aire acondicionado o bomba de calor según m², orientación, aislación y clima local de verano e invierno.</p><span class="card-link">Dimensionar BTU →</span></a>
-  <a class="card tool-card sun" href="/paneles-solares/"><span class="tool-icon">${icon('sun')}</span><h3>Paneles solares</h3><p>Estima kWp, número de paneles, inversión, generación anual y payback netbilling usando radiación de tu comuna.</p><span class="card-link">Estimar sistema solar →</span></a>
-</div></div></section>
-<section class="section"><div class="container"><div class="section-head"><div><h2>Explora por comuna</h2><p>Empieza con una comuna grande o usa el índice completo. Cada página local incorpora pliego BT1, radiación y temperaturas propias.</p></div><a class="btn secondary" href="/comunas/">Ver todas</a></div><div class="commune-grid">${examples.map(c => `<a href="/paneles-solares/${c.slug}/"><strong>${esc(c.name)}</strong><span>${clp(c.tariffs[0].marginalKwh, 2)}/kWh · ${num(c.calc.climate.ghi, 1)} kWh/m²/día</span></a>`).join('')}</div></div></section>
-<section class="section"><div class="container grid-2"><div class="card pad-lg"><span class="tag">transparencia</span><h2 style="margin-top:12px">Datos trazables, no texto inflado</h2><p>Las páginas comunales comparten estructura porque calculan lo mismo, pero no son texto reemplazado: cada una usa su distribuidora, precio variable, cargo fijo, boleta de referencia, radiación mensual y temperatura estacional.</p><p class="muted">La metodología y las fuentes oficiales están publicadas para auditar cada supuesto.</p><a href="/metodologia/">Ver metodología →</a></div><div class="card pad-lg"><span class="tag sun">actualización</span><h2 style="margin-top:12px">Vigencia clara de los precios</h2><p>Los pliegos procesados corresponden a tarifas BT1/BT1A vigentes desde el 01-11-2026. Las distribuidoras actualizan precios por factores de estacionalidad e indexación, por lo que cada página muestra su fecha y fuente.</p><p class="muted">En ${esc(expensive.name)} el costo variable llega a ${clp(expensive.tariffs[0].marginalKwh, 2)}/kWh; en ${esc(cheapest.name)} parte en ${clp(cheapest.tariffs[0].marginalKwh, 2)}/kWh.</p><a href="/tarifas/">Comparar tarifas →</a></div></div></section>
-<section class="section"><div class="container"><div class="section-head"><div><h2>Guías prácticas</h2><p>Contexto para interpretar el resultado sin convertir cifras referenciales en promesas comerciales.</p></div><a href="/guias/" class="btn secondary">Todas las guías</a></div><div class="grid-3">${guideCards(data).slice(0, 3).join('')}</div></div></section>`;
-  return layout({
-    origin,
-    path: '/',
-    title: 'Energía Chile: consumo eléctrico, BTU y paneles solares por comuna',
-    description: 'Calcula consumo eléctrico, BTU y paneles solares con tarifas residenciales por comuna de Chile, clima local y resultados en pesos chilenos.',
-    children,
-    jsonLd: [{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'Energía Chile', url: origin }]
-  });
+  const mean=data.communes.reduce((n,c)=>n+c.tariffs[0].marginalKwh,0)/data.communes.length;
+  const children=`<div class="home-instrument" data-home><div class="home-question"><p class="intro">La energía cambia con tu latitud.</p><h1>¿Cuánto te cuesta la energía en tu comuna?</h1>${search()}${modePill(null,'consumo','refrigerador',true)}<div class="appliance-picker" aria-label="Aparato para calcular">${data.appliances.map((a,i)=>`<button type="button" data-appliance-button="${a.slug}" aria-pressed="${i===0}">${ASSETS[a.slug]?`<img src="${ASSETS[a.slug]}" width="56" height="56" alt="">`:'<span class="appliance-unit" aria-hidden="true">W</span>'}<span>${esc(titleCase(a.name))}</span></button>`).join('')}</div></div>${meridian(data)}<section class="commune-facts" aria-labelledby="three-data"><h2 id="three-data">Tres datos de tu comuna</h2><p data-facts-name>Antes de elegir, la media nacional.</p><div class="fact-row"><a data-fact-link="consumo" href="/consumo-electrico/"><strong data-fact="price">${clp(mean,2)}</strong><span>/kWh · tarifa variable</span></a><a data-fact-link="solar" href="/paneles-solares/"><strong data-fact="ghi">${num(data.communes.reduce((n,c)=>n+c.calc.climate.ghi,0)/328,2)}</strong><span>kWh/m²/día · radiación media</span></a><a data-fact-link="btu" href="/btu/"><strong data-fact="temp">Verano / invierno</strong><span data-fact="season">El clima de tu comuna</span></a></div><p>Rango nacional: $137–$303/kWh. Consulta tu boleta para confirmar distribuidora y tarifa.</p></section></div>${regionBars(data)}<section class="section"><h2>Para leer antes de decidir</h2>${guideList(data.guides.slice(0,3))}<a href="/guias/">Todas las guías</a></section>`;
+  return layout({origin,path:'/',title:'Energía Chile: energía y tarifas en tu comuna',description:'¿Cuánto te cuesta la energía en tu comuna? Calcula consumo, aire y calefacción o paneles solares con tarifas BT1 y clima local.',children});
 }
-
-function guideCards(data) {
-  return data.guides.map(g => `<a class="card tool-card" href="${esc(g.path)}"><span class="tool-icon">${icon(g.icon || 'bolt')}</span><h3>${esc(g.title)}</h3><p>${esc(g.excerpt)}</p><span class="card-link">Leer guía →</span></a>`);
+const field=(name,label,value,min,max,step=1)=>`<label>${label}<input name="${name}" type="number" inputmode="decimal" value="${value}" min="${min}" max="${max}" step="${step}"></label>`;
+const hidden=(name,value)=>`<input type="hidden" name="${name}" value="${value}">`;
+const output=(key,value,cls='')=>`<strong class="${cls}" data-out="${key}">${value}</strong>`;
+function ring(percent, key, label) {
+  return `<figure class="bill-ring"><div class="ring" style="--share:${Math.min(100,percent)}%" aria-hidden="true"></div><figcaption>${output(key,num(percent,1)+'%')}<p>${label}</p></figcaption></figure>`;
 }
-
-export function consumoHubPage(data, origin) {
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Consumo eléctrico' }])}
-<section class="page-title container"><h1>Consumo eléctrico por aparato en Chile</h1><p class="lead">Calcula cuánto cuesta usar un aparato en tu comuna. El precio por kWh no es nacional: cambia con la distribuidora, el sistema eléctrico y los cargos de transmisión.</p></section>
-<section class="section container"><div class="grid-3">${data.appliances.map(a => `<a class="card tool-card" href="/consumo-electrico/${a.slug}/"><span class="tool-icon">${icon('bolt')}</span><h3>${esc(a.name)}</h3><p>Supuesto base: ${esc(a.defaultUse)}. Resultados en CLP según la tarifa BT1 local.</p><span class="card-link">Calcular ${esc(a.name)} →</span></a>`).join('')}</div></section>
-<section class="section container"><div class="card pad-lg"><h2>Cómo leer el resultado</h2><p>El costo de un aparato adicional usa el <strong>precio variable por kWh</strong>, no la boleta promedio. El cargo fijo se informa aparte porque se paga aunque no enciendas nada. La potencia de placa puede ser máxima; un medidor enchufable o la etiqueta de eficiencia suele entregar un promedio más realista.</p><div class="callout">Si tu consumo mensual ya supera 350 kWh, algunos recargos o beneficios tarifarios pueden cambiar. Verifica el detalle de tu boleta antes de tomar una decisión grande.</div></div></section>`;
-  return layout({ origin, path: '/consumo-electrico/', title: 'Consumo eléctrico por aparato en Chile | Energía Chile', description: 'Calcula el costo mensual de refrigerador, aire acondicionado, lavadora y otros aparatos según la tarifa eléctrica de tu comuna.', children });
+function calculatorFrame(type,answer,fields,note,attrs='') {
+  return `<section class="calculation" data-calculator="${type}" ${attrs}><div class="answer" aria-live="polite" aria-atomic="true">${answer}</div><form class="assumptions"><h2>Ajusta tus supuestos</h2><div class="fields">${fields}</div><p>${note}</p><button type="submit">Actualizar cálculo</button></form></section>`;
 }
-
-export function applianceHubPage(data, appliance, origin) {
-  const ranked = [...data.communes].sort((a, b) => b.tariffs[0].marginalKwh - a.tariffs[0].marginalKwh);
-  const examples = ranked.slice(0, 4).concat(ranked.slice(-4));
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Consumo eléctrico', href: '/consumo-electrico/' }, { name: appliance.name }])}
-<section class="page-title container"><h1>¿Cuánto consume un ${esc(appliance.name)} en Chile?</h1><p class="lead">${esc(appliance.tip)} Compara el costo mensual con el precio variable real de 328 comunas y ajusta potencia, horas y días de uso.</p>${communeSelector(data, null, `/consumo-electrico/${appliance.slug}/{comuna}/`)}</section>
-<section class="section container"><div class="section-head"><div><h2>Comunas destacadas por costo</h2><p>Los primeros resultados muestran tarifas altas y bajas; no implican mejor o peor servicio.</p></div></div><div class="commune-grid">${examples.map(c => `<a href="/consumo-electrico/${appliance.slug}/${c.slug}/"><strong>${esc(c.name)}</strong><span>${clp(c.tariffs[0].marginalKwh, 2)}/kWh · ${clp(applianceCalculation({ watts: appliance.watts, hoursPerDay: appliance.hoursPerDay, priceKwh: c.tariffs[0].marginalKwh }).costMonth)}/mes</span></a>`).join('')}</div></section>
-<section class="section container"><div class="card pad-lg"><h2>Supuesto base editable</h2><p>Usamos ${appliance.watts} W y ${num(appliance.hoursPerDay, 1)} horas diarias como punto de partida (${num(appliance.benchmarkKwhMonth, 1)} kWh al mes). Es una referencia, no una medición universal: eficiencia, tamaño, edad, temperatura ambiente y hábitos cambian el resultado.</p><p>Todas las páginas permiten cambiar los tres supuestos y mantienen visible la tarifa utilizada.</p></div></section>`;
-  return layout({ origin, path: `/consumo-electrico/${appliance.slug}/`, title: `Cuánto consume un ${appliance.name} por mes en Chile`, description: `Calcula el consumo mensual y costo en pesos de un ${appliance.name} según la tarifa residencial de tu comuna.`, children });
+function applianceCalculator(a,c,t) {
+  const x=applianceCalculation({watts:a.watts,hoursPerDay:a.hoursPerDay,priceKwh:t.marginalKwh});
+  const answer=`<p>Costo mensual estimado</p>${output('costMonth',clp(x.costMonth),'hero-number copper')}<p>${output('kwhMonth',num(x.kwhMonth,1)+' kWh')} al mes · ${output('costYear',clp(x.costYear))} al año</p>${ring(x.costMonth/t.bill250*100,'billShare',`Costo del aparato ÷ boleta tipo de 250 kWh (${clp(t.bill250)}, incluido cargo fijo). El anillo se limita a 100%; la cifra no.`)}<p>No agrega cargo fijo: ya se paga aunque el aparato esté apagado.</p>`;
+  return calculatorFrame('appliance',answer,field('watts','Potencia del equipo (W)',a.watts,1,10000)+field('hours','Horas de uso al día',a.hoursPerDay,0,24,.1)+field('days','Días al mes',30,1,31)+field('price','Tarifa variable (CLP/kWh)',t.marginalKwh,1,500,.01),`${esc(a.defaultUse)}. ${esc(a.inputLabel)}.`,`data-bill="${t.bill250}"`);
 }
-
-export function applianceCommunePage(data, appliance, commune, origin) {
-  const tariff = commune.tariffs[0];
-  const calc = applianceCalculation({ watts: appliance.watts, hoursPerDay: appliance.hoursPerDay, priceKwh: tariff.marginalKwh });
-  const nationalMedian = [...data.communes].sort((a, b) => a.tariffs[0].marginalKwh - b.tariffs[0].marginalKwh)[Math.floor(data.communes.length / 2)].tariffs[0].marginalKwh;
-  const diff = tariff.marginalKwh / nationalMedian - 1;
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Consumo eléctrico', href: '/consumo-electrico/' }, { name: appliance.name, href: `/consumo-electrico/${appliance.slug}/` }, { name: commune.name }])}
-<section class="page-title container"><span class="eyebrow">${esc(commune.region)} · tarifa ${esc(tariff.tariff)}</span><h1>Consumo de un ${esc(appliance.name)} en ${esc(commune.name)}</h1><p class="lead">Con la tarifa residencial de ${esc(tariff.distributorName)}, el supuesto base cuesta <strong>${clp(calc.costMonth)} al mes</strong> (${num(calc.kwhMonth, 1)} kWh). El precio variable local es ${Math.abs(diff) < 0.01 ? 'casi igual a' : diff > 0 ? `${num(diff * 100, 0)}% mayor que` : `${num(Math.abs(diff) * 100, 0)}% menor que`} la mediana comunal.</p>${applianceSelector(data, commune, appliance)}${communeSelector(data, commune, `/consumo-electrico/${appliance.slug}/{comuna}/`)}</section>
-<div class="container">${dataStrip(commune, tariff)}${applianceCalculator({ appliance, commune, tariff })}</div>
-<section class="section container content-grid"><div class="prose"><h2>Qué significa este resultado en ${esc(commune.name)}</h2><p>El cálculo usa <strong>${clp(tariff.marginalKwh, 2)} por cada kWh adicional</strong> con IVA. Ese valor suma energía, compras de potencia por energía, distribución, transmisión cuando corresponde y cargo por servicio público; excluye el cargo fijo mensual de ${clp(tariff.fixedMonthly)} porque no cambia por encender este aparato.</p><p>El consumo de referencia equivale a <strong>${num(calc.share250 * 100, 1)}%</strong> de una boleta de 250 kWh. Si ya consumes cerca de 350 kWh mensuales, revisa si tu boleta incluye recargos o beneficios distintos.</p><h2>Radiación y clima local</h2><p>El clima no solo afecta el aire acondicionado: refrigeradores y ventiladores también trabajan más en ambientes calurosos. En ${esc(commune.name)}, la temperatura media de verano es ${num(commune.calc.climate.summerTempC, 1)}°C y la radiación anual ${num(commune.calc.climate.ghi, 2)} kWh/m²/día.</p>${monthlyChart(commune)}<h2>Desglose tarifario</h2><p>La distribuidora de referencia es ${esc(tariff.distributorName)}. Si tu dirección está en un borde comunal o en una zona eléctrica especial, compara la alternativa disponible y confirma en tu boleta.</p>${tariffTable(commune, data)}<div class="callout"><strong>Consejo práctico:</strong> ${esc(appliance.tip)}</div></div><aside class="sidebar">${communeFacts(commune, tariff)}<div class="card"><h3>Otras comunas de la región</h3>${relatedCommunes(data, commune, `/consumo-electrico/${appliance.slug}/{comuna}/`)}</div><div class="card"><h3>Herramientas para ${esc(commune.name)}</h3><div class="link-list"><a href="/btu/${commune.slug}/"><span>Calculadora BTU</span><small>${nf.format(commune.calc.coolingBaseBtuhM2)} BTU/m² base</small></a><a href="/paneles-solares/${commune.slug}/"><span>Paneles solares</span><small>${num(commune.calc.solarKwhKwpYear)} kWh/kWp/año</small></a></div></div></aside></section>
-<section class="section container"><div class="section-head"><div><h2>Otros aparatos en ${esc(commune.name)}</h2></div></div><div class="pill-row">${data.appliances.filter(a => a.slug !== appliance.slug).map(a => `<a class="pill" href="/consumo-electrico/${a.slug}/${commune.slug}/">${esc(a.name)}</a>`).join('')}</div></section>`;
-  const faq = {
-    '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [
-      { '@type': 'Question', name: `¿Cuánto cuesta usar un ${appliance.name} en ${commune.name}?`, acceptedAnswer: { '@type': 'Answer', text: `Con el supuesto base de ${appliance.watts} W durante ${appliance.hoursPerDay} horas diarias, el costo estimado es ${clp(calc.costMonth)} al mes usando ${clp(tariff.marginalKwh, 2)}/kWh.` } },
-      { '@type': 'Question', name: '¿El cálculo incluye el cargo fijo?', acceptedAnswer: { '@type': 'Answer', text: 'No. El cargo fijo se muestra por separado porque se paga independiente del consumo adicional del aparato.' } }
-    ]
-  };
-  return layout({
-    origin,
-    path: `/consumo-electrico/${appliance.slug}/${commune.slug}/`,
-    title: `Consumo de ${appliance.name} en ${commune.name}: costo mensual en CLP`,
-    description: `Calcula cuánto consume un ${appliance.name} en ${commune.name}. Tarifa ${tariff.tariff} de ${tariff.distributorName}, precio real por kWh y calculadora editable.`,
-    children,
-    jsonLd: [faq]
-  });
+function btuCalculator(c,t) {
+  const params={areaM2:15,climate:c.calc,priceKwh:t.marginalKwh};
+  const cold=btuCalculation(params),heat=btuCalculation({...params,mode:'calefaccion'});
+  const answer=`<div class="thermal-readings"><div><p>Para enfriar</p>${output('btu',nf.format(Math.round(cold.raw))+' BTU/h','thermal-number')}<p>Equipo sugerido: ${output('recommended',nf.format(cold.recommended)+' BTU')}</p>${output('costMonth',clp(cold.monthlyCost30h))} / 30 h al mes</div><div><p>Para calefaccionar</p>${output('heatBtu',nf.format(Math.round(heat.raw))+' BTU/h','thermal-number copper')}<p>Equipo sugerido: ${output('heatRecommended',nf.format(heat.recommended)+' BTU')}</p>${output('heatCost',clp(heat.monthlyCost30h))} / 30 h al mes</div></div><p>Capacidad térmica, no consumo eléctrico. Referencia: un split de 12.000 BTU usa 1,09 kW de entrada.</p>`;
+  const fields=field('area','Superficie (m²)',15,4,200,.5)+field('height','Altura (m)',2.5,2.2,5,.1)+field('occupants','Personas habituales',2,1,15)+field('windows','Ventanas (m²)',2,0,30,.5)+`<label>Orientación<select name="orientation"><option value="norte">Norte</option><option value="oriente">Oriente</option><option value="poniente">Poniente</option><option value="sur">Sur</option></select></label><label>Aislación<select name="insulation"><option value="normal">Normal</option><option value="buena">Buena</option><option value="deficiente">Deficiente</option></select></label>`+hidden('baseCooling',c.calc.coolingBaseBtuhM2)+hidden('baseHeating',c.calc.heatingBaseBtuhM2)+hidden('price',t.marginalKwh);
+  return calculatorFrame('btu',answer,fields,`Invierno local ${num(c.calc.climate.winterTempC)}°C; verano ${num(c.calc.climate.summerTempC)}°C. Orientativo: pide un cálculo térmico a un instalador.`);
 }
-
-export function btuHubPage(data, origin) {
-  const examples = ['arica', 'iquique', 'santiago', 'independencia', 'concepcion', 'temuco', 'puerto-montt', 'punta-arenas'].map(slug => data.communes.find(c => c.slug === slug)).filter(Boolean);
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Calculadora BTU' }])}
-<section class="page-title container"><h1>Calculadora BTU por m² y clima de tu comuna</h1><p class="lead">Dimensiona un aire acondicionado o bomba de calor con datos locales de temperatura y radiación. Una comuna del desierto no exige lo mismo que una del sur lluvioso.</p>${communeSelector(data, null, '/btu/{comuna}/')}</section>
-<section class="section container"><div class="grid-4">${examples.map(c => `<a class="card" href="/btu/${c.slug}/" style="text-decoration:none;color:inherit"><span class="tag blue">${num(c.calc.climate.summerTempC, 1)}°C verano</span><h3 style="margin-top:12px">${esc(c.name)}</h3><p class="muted small">${nf.format(c.calc.coolingBaseBtuhM2)} BTU/h por m² base en frío · ${nf.format(c.calc.heatingBaseBtuhM2)} en calefacción</p></a>`).join('')}</div></section>
-<section class="section container"><div class="card pad-lg"><h2>BTU no es consumo eléctrico</h2><p>BTU/h mide capacidad térmica: cuánto calor puede remover o entregar el equipo. La potencia eléctrica depende de la eficiencia. Como referencia usamos 1,09 kW de entrada para un split inverter residencial de 12.000 BTU; modelos premium pueden consumir menos parcializados.</p></div></section>`;
-  return layout({ origin, path: '/btu/', title: 'Calculadora BTU por m² y comuna de Chile | Energía Chile', description: 'Calcula cuántos BTU necesita una habitación o vivienda según superficie, orientación, aislación y clima de tu comuna.', children });
+function solarCalculator(c,t) {
+  const x=solarCalculation({monthlyKwh:250,ghiDay:c.calc.climate.ghi,priceKwh:t.marginalKwh,injectionKwh:t.energyKwh});
+  const answer=`<p>Sistema solar sugerido</p>${output('kwp',num(x.installedKwp,2)+' kWp','hero-number')}<p>${output('panels',nf.format(x.panels)+' paneles')} · ${output('roof',num(x.roofM2,1)+' m²')} de techo útil</p><div class="solar-readings"><div>${output('payback',num(x.paybackYears,1)+' años')}<span>Retorno simple estimado</span></div><div>${output('annualSavings',clp(x.savingsYear))}<span>Ahorro anual estimado</span></div><div>${output('generation',nf.format(Math.round(x.generationYear))+' kWh/año')}<span>Generación esperada</span></div></div>${ring(72,'selfShare',`Autoconsumo instantáneo. La energía restante se inyecta a ${clp(t.energyKwh,2)}/kWh, no al precio de compra (${clp(t.marginalKwh,2)}/kWh). Ley 20.571.`)}<p>Inversión: ${output('cost',clp(x.totalCost))}. Ahorro mensual: ${output('savings',clp(x.savingsMonth))}.</p>`;
+  const fields=field('monthlyKwh','Consumo mensual (kWh)',250,50,3000,10)+field('coverage','Cobertura objetivo (%)',80,20,100,5)+field('ghi','Radiación (kWh/m²/día)',c.calc.climate.ghi,1,10,.01)+field('panelW','Potencia por panel (W)',550,300,700,10)+field('selfConsumption','Autoconsumo (%)',72,0,100)+field('price','Tarifa variable (CLP/kWh)',t.marginalKwh,50,500,.01)+field('roofAvailable','Superficie útil disponible (m²)',Math.ceil(x.roofM2),1,500)+field('costKwp','Costo instalado (CLP/kWp)',0,0,10000000,10000)+hidden('injection',t.energyKwh);
+  return calculatorFrame('solar',answer,fields,'Costo 0: usa referencia automática $1.700–$1.080 por Wp. Conexión estimada $115.877 (SEC 2025). Sin batería, financiamiento ni sombras. La superficie limita los paneles instalables. Rendimiento 0,78.');
 }
-
-export function btuCommunePage(data, commune, origin) {
-  const tariff = commune.tariffs[0];
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'BTU', href: '/btu/' }, { name: commune.name }])}
-<section class="page-title container"><span class="eyebrow">clima NASA POWER · ${esc(commune.name)}</span><h1>Calculadora BTU en ${esc(commune.name)}</h1><p class="lead">La carga base estimada es <strong>${nf.format(commune.calc.coolingBaseBtuhM2)} BTU/h por m²</strong> para frío y <strong>${nf.format(commune.calc.heatingBaseBtuhM2)} BTU/h por m²</strong> para calefacción. Ajusta superficie, ventanas, orientación y aislación.</p>${communeSelector(data, commune, '/btu/{comuna}/')}</section>
-<div class="container">${dataStrip(commune, tariff)}${btuCalculator({ commune, tariff })}</div>
-<section class="section container content-grid"><div class="prose"><h2>Clima usado en el dimensionamiento</h2><p>En ${esc(commune.name)}, la temperatura media de verano es ${num(commune.calc.climate.summerTempC, 1)}°C y la temperatura media de invierno ${num(commune.calc.climate.winterTempC, 1)}°C. La radiación anual de ${num(commune.calc.climate.ghi, 2)} kWh/m²/día aumenta la carga en espacios con ventanales, especialmente orientados al norte o poniente.</p>${monthlyChart(commune)}<h2>Cómo interpretar la recomendación</h2><p>El resultado redondea a capacidades comerciales habituales: 9.000, 12.000, 18.000, 24.000 BTU y superiores. Si quedas justo entre dos tamaños, un inverter correctamente instalado suele ser preferible a sobredimensionar en exceso, porque modular mejor evita ciclos cortos.</p><ul><li><strong>Buena aislación:</strong> doble vidrio, cielo aislado y sellos pueden reducir cerca de 18% la carga estimada.</li><li><strong>Poniente:</strong> recibe sol fuerte al final de la tarde; el modelo agrega 25% a la carga de ventanas.</li><li><strong>Calefacción:</strong> usa el invierno local; en zonas frías la capacidad necesaria puede superar la de refrigeración.</li></ul><h2>Costo eléctrico de referencia</h2><p>Un equipo de 12.000 BTU se modela con 1,09 kW de entrada. A 30 horas mensuales y tarifa variable de ${clp(tariff.marginalKwh, 2)}/kWh, representa cerca de ${clp(1.09 * 30 * tariff.marginalKwh)} al mes en ${esc(commune.name)}. El costo real depende de temperatura objetivo, horas y eficiencia.</p>${tariffTable(commune, data)}</div><aside class="sidebar">${communeFacts(commune, tariff)}<div class="card"><h3>Otras comunas cercanas</h3>${relatedCommunes(data, commune, '/btu/{comuna}/')}</div><div class="card"><h3>Continuar el cálculo</h3><div class="link-list"><a href="/consumo-electrico/aire-acondicionado/${commune.slug}/"><span>Costo del aire acondicionado</span><small>editable</small></a><a href="/paneles-solares/${commune.slug}/"><span>Paneles solares</span><small>${num(commune.calc.solarKwhKwpYear)} kWh/kWp/año</small></a></div></div></aside></section>`;
-  return layout({ origin, path: `/btu/${commune.slug}/`, title: `Calculadora BTU en ${commune.name}: frío y calefacción por m²`, description: `Dimensiona BTU de aire acondicionado o bomba de calor en ${commune.name} con clima local, superficie, orientación y tarifa eléctrica real.`, children });
+function monthlyChart(c,temperature=false) {
+  const values=Object.values(c.climate.monthly).map(m=>temperature?m.tempC:m.radiationKwhM2Day);
+  const min=temperature?Math.min(0,...values):0,max=Math.ceil(Math.max(...values)),span=max-min || 1;
+  const mean=temperature?c.climate.annualTempC:c.calc.climate.ghi;
+  return `<figure class="monthly-chart ${temperature?'temperature-chart':'radiation-chart'}"><figcaption><h2>${temperature?'Temperatura mensual':'Radiación mensual'}</h2><p>NASA POWER · ${temperature?'°C':'kWh/m²/día'}. Media anual: ${num(mean,2)}.</p></figcaption><div class="chart-axis"><span>${max}</span><span>${num((max+min)/2,1)}</span><span>${min}</span></div><div class="monthly-bars" style="--mean:${(mean-min)/span*200}px">${values.map((v,i)=>`<div class="month-column"><strong>${num(v,1)}</strong><div class="month-track"><span style="height:${(v-min)/span*100}%;--delay:${i*20}ms"></span></div><span>${monthNames[i]}</span></div>`).join('')}<span class="mean-line" aria-hidden="true"></span></div><p class="small">Línea: media anual. ${temperature?'Altura desde '+min+'°C; los valores mensuales incluyen temperaturas bajo cero.':'Radiación en el centroide comunal, sin sombras del techo.'}</p></figure>`;
 }
-
-export function solarHubPage(data, origin) {
-  const ranked = [...data.communes].sort((a, b) => b.calc.solarKwhKwpYear - a.calc.solarKwhKwpYear);
-  const examples = ranked.slice(0, 4).concat(ranked.slice(-4));
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Paneles solares' }])}
-<section class="page-title container"><h1>Calculadora de paneles solares por comuna de Chile</h1><p class="lead">Estima cuántos paneles necesitas, cuánto generarían al año y en cuánto tiempo se recuperaría la inversión bajo netbilling residencial.</p>${communeSelector(data, null, '/paneles-solares/{comuna}/')}</section>
-<section class="section container"><div class="section-head"><div><h2>Comunas extremas de radiación</h2><p>La radiación cambia fuertemente entre el norte y el sur austral.</p></div></div><div class="commune-grid">${examples.map(c => `<a href="/paneles-solares/${c.slug}/"><strong>${esc(c.name)}</strong><span>${num(c.calc.climate.ghi, 2)} kWh/m²/día · ${num(c.calc.solarKwhKwpYear)} kWh/kWp/año</span></a>`).join('')}</div></section>
-<section class="section container"><div class="card pad-lg"><h2>Qué es netbilling en una casa</h2><p>Un sistema de generación distribuida primero abastece tus consumos instantáneos. Los excedentes se inyectan a la red y se descuentan en la boleta según las reglas de la Ley 20.571. Por eso el ahorro no valora todo a la tarifa completa: la energía autoconsumida vale más que la inyectada.</p></div></section>`;
-  return layout({ origin, path: '/paneles-solares/', title: 'Calculadora de paneles solares en Chile por comuna | Energía Chile', description: 'Estima paneles solares, kWp, inversión, generación anual y payback netbilling con radiación solar y tarifas de tu comuna.', children });
+function tariffTable(c) {
+  return `<table class="stackable"><caption>Tarifas de ${esc(c.name)} · con IVA · 01-11-2026</caption><thead><tr><th>Distribuidora</th><th>Variable /kWh</th><th>Cargo fijo</th><th>Boleta 250 kWh</th><th>Fuente</th></tr></thead><tbody>${c.tariffs.map(t=>`<tr><td data-label="Distribuidora">${esc(t.distributorName)} · ${esc(t.tariff)}</td><td data-label="Variable /kWh">${clp(t.marginalKwh,2)}</td><td data-label="Cargo fijo">${clp(t.fixedMonthly)}</td><td data-label="Boleta 250 kWh">${clp(t.bill250)}</td><td data-label="Fuente"><a href="${esc(t.pliegoUrl)}" rel="noopener" target="_blank">Pliego oficial</a></td></tr>`).join('')}</tbody></table>`;
 }
-
-export function solarCommunePage(data, commune, origin) {
-  const tariff = commune.tariffs[0];
-  const calc = solarCalculation({ monthlyKwh: 250, ghiDay: commune.calc.climate.ghi, priceKwh: tariff.marginalKwh, injectionKwh: tariff.energyKwh });
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Paneles solares', href: '/paneles-solares/' }, { name: commune.name }])}
-<section class="page-title container"><span class="eyebrow">${num(commune.calc.climate.ghi, 2)} kWh/m²/día · ${esc(commune.region)}</span><h1>Paneles solares en ${esc(commune.name)}</h1><p class="lead">Para una boleta de 250 kWh mensuales y 80% de cobertura, el sistema de referencia es <strong>${num(calc.installedKwp, 2)} kWp</strong> con ${nf.format(calc.panels)} paneles de 550 W. La generación local esperada es ${num(commune.calc.solarKwhKwpYear)} kWh por kWp instalado al año.</p>${communeSelector(data, commune, '/paneles-solares/{comuna}/')}</section>
-<div class="container">${dataStrip(commune, tariff)}${solarCalculator({ commune, tariff })}</div>
-<section class="section container content-grid"><div class="prose"><h2>Potencial solar mensual</h2><p>NASA POWER reporta un promedio anual de ${num(commune.calc.climate.ghi, 2)} kWh/m²/día para el centroide aproximado de ${esc(commune.name)}. El rendimiento usa un performance ratio de 0,78 por pérdidas de temperatura, cableado, suciedad, inversor e inclinación no ideal.</p>${monthlyChart(commune)}<h2>Economía del sistema de referencia</h2><div class="table-wrap"><table><tbody><tr><td>Inversión equipos e instalación</td><td class="num"><strong>${clp(calc.equipmentCost)}</strong></td></tr><tr><td>Conexión SEC estimada</td><td class="num"><strong>${clp(calc.connectionCost)}</strong></td></tr><tr><td>Generación primer año</td><td class="num"><strong>${nf.format(Math.round(calc.generationYear))} kWh</strong></td></tr><tr><td>Ahorro mensual de referencia</td><td class="num"><strong>${clp(calc.savingsMonth)}</strong></td></tr><tr><td>Payback simple</td><td class="num"><strong>${num(calc.paybackYears, 1)} años</strong></td></tr></tbody></table></div><p>El ahorro supone 72% de autoconsumo instantáneo y 28% de inyección. La parte autoconsumida evita comprar a ${clp(tariff.marginalKwh, 2)}/kWh; la inyectada se valora a ${clp(tariff.energyKwh, 2)}/kWh, aproximado al cargo por energía del pliego. Tu proporción real depende de consumos diurnos, termo eléctrico, vehículo eléctrico o batería.</p><h2>Antes de pedir cotizaciones</h2><ul><li>Revisa sombras de árboles, chimeneas, edificios y cerros; la radiación comunal no ve obstrucciones de tu techo.</li><li>Confirma orientación e inclinación. En Chile la orientación norte suele maximizar energía anual.</li><li>Pide el diseño con producción mensual estimada y compárala con esta referencia.</li><li>Consulta a tu distribuidora por potencia máxima, medidor bidireccional y declaración SEC antes de comprar.</li></ul>${tariffTable(commune, data)}</div><aside class="sidebar">${communeFacts(commune, tariff)}<div class="card"><h3>Otras comunas cercanas</h3>${relatedCommunes(data, commune, '/paneles-solares/{comuna}/')}</div><div class="card"><h3>Complementar el análisis</h3><div class="link-list"><a href="/consumo-electrico/aire-acondicionado/${commune.slug}/"><span>Costo del aire acondicionado</span><small>editable</small></a><a href="/btu/${commune.slug}/"><span>Calculadora BTU</span><small>${nf.format(commune.calc.coolingBaseBtuhM2)} BTU/m²</small></a></div></div></aside></section>`;
-  const faq = { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: [{ '@type': 'Question', name: `¿Cuántos paneles solares necesita una casa en ${commune.name}?`, acceptedAnswer: { '@type': 'Answer', text: `Para cubrir 80% de 250 kWh mensuales, la referencia es ${nf.format(calc.panels)} paneles de 550 W (${num(calc.installedKwp, 2)} kWp). El resultado cambia con tu consumo, sombras y orientación.` } }] };
-  return layout({ origin, path: `/paneles-solares/${commune.slug}/`, title: `Paneles solares en ${commune.name}: costo, generación y payback`, description: `Calcula paneles solares en ${commune.name}: radiación local, kWp necesarios, inversión estimada, ahorro mensual y payback netbilling.`, children, jsonLd: [faq] });
+function tariffRule(data,c) {
+  const prices=data.communes.map(c=>c.tariffs[0].marginalKwh),min=Math.min(...prices),max=Math.max(...prices),p=c.tariffs[0].marginalKwh;
+  return `<figure class="tariff-rule"><figcaption>${esc(c.name)}: ${clp(p,2)}/kWh variable</figcaption><div class="rule-line"><span style="left:${(p-min)/(max-min)*100}%"></span></div><div class="rule-labels"><span>${clp(min,2)} mín.</span><span>${clp(max,2)} máx.</span></div></figure>`;
 }
-
-export function comunasPage(data, origin) {
-  const byRegion = new Map();
-  for (const c of data.communes) {
-    if (!byRegion.has(c.region)) byRegion.set(c.region, []);
-    byRegion.get(c.region).push(c);
-  }
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Comunas' }])}<section class="page-title container"><h1>Índice de comunas con datos eléctricos</h1><p class="lead">${nf.format(data.communes.length)} comunas tienen al menos un pliego residencial procesado. Cada ficha enlaza consumo, BTU y potencial solar local.</p></section><section class="section container">${[...byRegion.entries()].map(([region, rows]) => `<div class="region-title"><span class="tag">${rows.length}</span><h3><a href="/region/${slugify(region)}/">${esc(region)}</a></h3></div><div class="alphabet" style="margin:12px 0 22px">${rows.map(c => `<a class="pill" href="/paneles-solares/${c.slug}/">${esc(c.name)}</a>`).join('')}</div>`).join('')}</section>`;
-  return layout({ origin, path: '/comunas/', title: 'Comunas de Chile con tarifas eléctricas y datos solares | Energía Chile', description: 'Índice de comunas chilenas con precio por kWh, cargo fijo, consumo de aparatos, BTU y potencial solar local.', children });
+function localIntro(data,c,mode,title,a) {
+  return `${breadcrumbs([{name:'Inicio',href:'/'},{name:mode==='consumo'?'Consumo':mode==='btu'?'Aire y calefacción':'Paneles solares',href:modes.find(m=>m[0]===mode)[2]},{name:c.name}])}<div class="local-heading"><div><p class="intro">${esc(c.region)} · ${esc(c.tariffs[0].distributorName)}</p><h1>${esc(title)}</h1>${modePill(c,mode,a?.slug)}${search(c,mode,a?.slug)}</div>${meridian(data,c)}</div>`;
 }
-
-export function regionPage(data, regionSlug, origin) {
-  const rows = data.communes.filter(c => c.regionSlug === regionSlug);
-  if (!rows.length) return null;
-  const region = rows[0].region;
-  const avgTariff = rows.reduce((s, c) => s + c.tariffs[0].marginalKwh, 0) / rows.length;
-  const avgGhi = rows.reduce((s, c) => s + c.calc.climate.ghi, 0) / rows.length;
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Comunas', href: '/comunas/' }, { name: region }])}<section class="page-title container"><h1>Electricidad y energía solar en ${esc(region)}</h1><p class="lead">${rows.length} comunas procesadas. Promedio simple: ${clp(avgTariff, 2)}/kWh variable y ${num(avgGhi, 2)} kWh/m²/día de radiación anual.</p></section><section class="section container"><div class="commune-grid">${rows.map(c => `<a href="/paneles-solares/${c.slug}/"><strong>${esc(c.name)}</strong><span>${clp(c.tariffs[0].marginalKwh, 2)}/kWh · ${num(c.calc.climate.ghi, 1)} kWh/m²/día</span></a>`).join('')}</div></section>`;
-  return layout({ origin, path: `/region/${regionSlug}/`, title: `Electricidad y paneles solares en ${region} | Energía Chile`, description: `Comunas de ${region} con precio variable por kWh, tarifas residenciales y potencial solar local.`, children });
+function localTail(data,c,mode,a) {
+  const peers=data.communes.filter(x=>x.regionSlug===c.regionSlug && x.slug!==c.slug).slice(0,6);
+  return `${slot}<section class="section local-source"><h2>La tarifa que usamos</h2>${tariffRule(data,c)}${tariffTable(c)}<p>Primera distribuidora como referencia. Tu dirección puede tener otra; revisa tu boleta. Clima: centroide ${num(Math.abs(c.lat),3)}°S, ${num(Math.abs(c.lon),3)}°O.</p><p><a href="/metodologia/">Fórmulas y límites</a> · <a href="/fuentes/">Fuentes y fechas</a></p><h2>En la misma región</h2><div class="dense-links">${peers.map(x=>`<a href="${localPath(mode,x.slug,a?.slug)}">${esc(x.name)}</a>`).join('')}</div></section>`;
 }
-
-export function tarifasPage(data, origin) {
-  const rows = [...data.communes].sort((a, b) => a.tariffs[0].marginalKwh - b.tariffs[0].marginalKwh);
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Tarifas' }])}<section class="page-title container"><h1>Tarifas eléctricas residenciales por comuna</h1><p class="lead">Comparación del costo variable BT1/BT1A con IVA vigente al 01-11-2026. La tabla ordena por la distribuidora de referencia de cada comuna; en límites comunales puede haber alternativas.</p></section><section class="section container"><div class="table-wrap"><table><thead><tr><th>Comuna</th><th>Región</th><th>Distribuidora</th><th class="num">Variable $/kWh</th><th class="num">Cargo fijo</th><th class="num">Boleta 250 kWh</th></tr></thead><tbody>${rows.map(c => `<tr><td><a href="/consumo-electrico/refrigerador/${c.slug}/">${esc(c.name)}</a></td><td>${esc(c.region)}</td><td>${esc(c.tariffs[0].distributorName)}</td><td class="num mono">${clp(c.tariffs[0].marginalKwh, 2)}</td><td class="num mono">${clp(c.tariffs[0].fixedMonthly)}</td><td class="num mono">${clp(c.tariffs[0].bill250)}</td></tr>`).join('')}</tbody></table></div></section>`;
-  return layout({ origin, path: '/tarifas/', title: 'Tarifas eléctricas residenciales por comuna de Chile | Energía Chile', description: 'Tabla de costo variable por kWh, cargo fijo y boleta de 250 kWh para comunas chilenas según pliegos BT1 vigentes.', children });
+export function applianceCommunePage(data,a,c,origin) {
+  const t=c.tariffs[0],title=`¿Cuánto consume ${articleName(a)} en ${c.name}?`;
+  const x=applianceCalculation({watts:a.watts,hoursPerDay:a.hoursPerDay,priceKwh:t.marginalKwh});
+  const answer=`Con ${a.watts} W y ${num(a.hoursPerDay)} horas diarias, ${articleName(a)} consume ${num(x.kwhMonth)} kWh al mes y cuesta ${clp(x.costMonth)} en ${c.name}.`;
+  const comparisons=data.appliances.map(ap=>({ap,cost:ap.watts/1000*ap.hoursPerDay*30*t.marginalKwh}));
+  const max=Math.max(...comparisons.map(x=>x.cost));
+  const children=localIntro(data,c,'consumo',title,a)+applianceCalculator(a,c,t)+`<section class="section"><h2>Otros aparatos en ${esc(c.name)}</h2><p>Potencias y hábitos de referencia. No representan una misma duración de uso.</p>${comparisons.map(x=>`<a class="horizontal-bar" href="/consumo-electrico/${x.ap.slug}/${c.slug}/"><span>${esc(titleCase(x.ap.name))}</span><span class="bar-track"><span style="width:${x.cost/max*100}%"></span></span><strong>${clp(x.cost)}<small>/mes</small></strong></a>`).join('')}<p>${esc(a.tip)}</p><h2>¿Cómo se calcula?</h2><p>${esc(answer)} Potencia ÷ 1.000 × horas diarias × días. El costo usa ${clp(t.marginalKwh,2)}/kWh; el cargo fijo es ${clp(t.fixedMonthly)}.</p></section>`+localTail(data,c,'consumo',a);
+  return layout({origin,path:localPath('consumo',c.slug,a.slug),title,description:answer,children,jsonLd:localSchemas(c,origin+localPath('consumo',c.slug,a.slug),title,answer)});
 }
-
-export function guiasPage(data, origin) {
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Guías' }])}<section class="page-title container"><h1>Guías de energía para hogares chilenos</h1><p class="lead">Explicaciones prácticas para interpretar consumo, BTU, tarifas y netbilling sin depender de una sola cifra.</p></section><section class="section container"><div class="grid-3">${guideCards(data).join('')}</div></section>`;
-  return layout({ origin, path: '/guias/', title: 'Guías de consumo eléctrico, BTU y energía solar | Energía Chile', description: 'Guías prácticas para hogares chilenos sobre consumo eléctrico, eficiencia, aire acondicionado, BTU y paneles solares netbilling.', children });
+export function btuCommunePage(data,c,origin) {
+  const x=btuCalculation({areaM2:15,climate:c.calc,priceKwh:c.tariffs[0].marginalKwh});
+  const title=`Calculadora BTU en ${c.name}: ${nf.format(x.recommended)} BTU para 15 m²`;
+  const answer=`La carga de referencia para enfriar 15 m² es ${nf.format(Math.round(x.raw))} BTU/h. Ajusta aislación, ventanas y altura; calefacción usa el invierno local.`;
+  return layout({origin,path:localPath('btu',c.slug),title,description:answer,children:localIntro(data,c,'btu',title)+btuCalculator(c,c.tariffs[0])+`<section class="section">${monthlyChart(c,true)}<p>En verano: ${num(c.calc.climate.summerTempC)}°C; en invierno: ${num(c.calc.climate.winterTempC)}°C. Buena aislación reduce la carga de referencia un 18%. Ventanas al poniente aumentan su componente de enfriamiento un 25%.</p></section>`+localTail(data,c,'btu'),jsonLd:localSchemas(c,origin+localPath('btu',c.slug),title,answer)});
 }
-
-export function guidePage(guide, origin) {
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: 'Guías', href: '/guias/' }, { name: guide.title }])}<article class="page-title container"><span class="eyebrow">guía práctica</span><h1>${esc(guide.title)}</h1><p class="lead">${esc(guide.excerpt)}</p></article><article class="section container content-grid"><div class="prose">${guide.body}</div><aside class="sidebar"><div class="card"><h3>En esta guía</h3><div class="toc">${guide.toc.map(item => `<a href="#${esc(item.id)}">${esc(item.label)}</a>`).join('')}</div></div><div class="card"><h3>Herramientas relacionadas</h3><div class="link-list"><a href="/consumo-electrico/"><span>Consumo por aparato</span><small>CLP</small></a><a href="/btu/"><span>Calculadora BTU</span><small>clima local</small></a><a href="/paneles-solares/"><span>Paneles solares</span><small>netbilling</small></a></div></div></aside></article>`;
-  return layout({ origin, path: guide.path, title: `${guide.title} | Energía Chile`, description: guide.excerpt, children });
+export function solarCommunePage(data,c,origin) {
+  const title=`Paneles solares en ${c.name}`,description=`Estima kWp, ahorro anual y retorno con radiación de ${num(c.calc.climate.ghi,2)} kWh/m²/día y tarifa BT1 local.`;
+  return layout({origin,path:localPath('solar',c.slug),title,description,children:localIntro(data,c,'solar',title)+solarCalculator(c,c.tariffs[0])+`<section class="section">${monthlyChart(c)}<h2>Antes de instalar</h2><p>Revisa sombras, orientación norte, estructura y tablero. Pide a un instalador habilitado la producción mensual y consulta a tu distribuidora por el medidor bidireccional. La radiación comunal no reemplaza el estudio de tu techo.</p><a href="/guias/paneles-solares-netbilling/">Cómo se valoran las inyecciones</a></section>`+localTail(data,c,'solar'),jsonLd:localSchemas(c,origin+localPath('solar',c.slug),title,description),image:c.slug==='temuco'?'/brand/og/og-solar-temuco.webp':undefined});
 }
-
-export function simplePage(kind, origin) {
-  const pages = {
-    metodologia: {
-      title: 'Metodología de cálculo', description: 'Fórmulas, supuestos y límites de las calculadoras de Energía Chile.', body: `<p>Energía Chile separa <strong>datos observados</strong>, <strong>supuestos editables</strong> y <strong>resultados estimados</strong>. Las cifras no son cotizaciones ni promesas de ahorro.</p><h2>Consumo de aparatos</h2><p>Consumo mensual = potencia (W) ÷ 1000 × horas diarias × días al mes. El costo multiplica ese consumo por el precio variable local con IVA. El cargo fijo se muestra aparte porque no cambia con un aparato adicional.</p><h2>BTU</h2><p>La carga térmica combina superficie, altura, ocupantes, ventanas, orientación, aislación y clima comunal. Es un dimensionamiento orientativo residencial, no un cálculo de ingeniería térmica.</p><h2>Paneles solares</h2><p>Generación anual = kWp instalado × radiación diaria × 365 × performance ratio 0,78. El ahorro valora autoconsumo a la tarifa variable evitada e inyecciones al cargo por energía. Costos referenciales por tamaño se basan en rangos de mercado residencial publicados en Chile y no incluyen baterías.</p><h2>Limitaciones</h2><ul><li>El centroide comunal puede no representar microclimas, sombras o altura de una vivienda específica.</li><li>Algunas comunas tienen más de una distribuidora o sectores no eléctricos.</li><li>Los pliegos pueden cambiar por indexación, estacionalidad o nuevas resoluciones.</li><li>No se calculan pérdidas específicas de inversor, orientación real, batería ni financiamiento.</li></ul>`
-    },
-    fuentes: {
-      title: 'Fuentes y trazabilidad', description: 'Fuentes oficiales y datasets usados por Energía Chile.', body: `<h2>Fuentes principales</h2><ul class="source-list"><li>Pliegos tarifarios oficiales de distribuidoras eléctricas, vigencia 01-11-2026. Cada página comunal enlaza el pliego usado.</li><li>NASA POWER climatology 2001-2025: radiación solar, temperatura media, máxima y mínima mensual por coordenada comunal.</li><li>Listado territorial comunal publicado por tgb.cl/comunas: nombre, CUT, provincia, superficie y coordenadas aproximadas.</li><li>SEC: guía de Generación Distribuida para Autoconsumo y procedimiento de conexión.</li><li>Ley 20.571 y Ley 21.505 sobre generación distribuida y tarifas eléctricas.</li><li>Ministerio de Energía: materiales de eficiencia energética y etiquetado de electrodomésticos.</li></ul><p>La lectura estructurada de pliegos fue verificada contra el agregador público mapache.ai cuando estuvo disponible. Las cifras se procesan como hechos tarifarios; el diseño, metodología y textos del sitio son propios.</p>`
-    },
-    privacidad: {
-      title: 'Política de privacidad', description: 'Política de privacidad de Energía Chile.', body: `<p>Energía Chile es un sitio informativo. Las calculadoras procesan los valores ingresados en tu navegador; no exigimos crear cuenta ni entregar datos personales para calcular.</p><h2>Datos que podemos registrar</h2><p>Como la mayoría de los sitios web, el proveedor de alojamiento puede registrar registros técnicos como dirección IP, navegador, fecha, ruta solicitada y errores para seguridad y operación.</p><h2>Cookies y publicidad</h2><p>Si el sitio incorpora Google AdSense u otros proveedores publicitarios, ellos podrán usar cookies o tecnologías similares para mostrar anuncios, medir rendimiento y prevenir fraude. Google puede usar cookies de publicidad conforme a su política. Puedes revisar y administrar la personalización en la configuración de anuncios de Google.</p><h2>Contacto</h2><p>Si escribes por correo, usaremos los datos enviados solo para responder la solicitud. No vendemos bases de datos ni compartimos información personal con terceros fuera de los proveedores necesarios para operar el sitio.</p><h2>Cambios</h2><p>Esta política puede actualizarse cuando cambien las herramientas o servicios del sitio. La versión vigente estará publicada en esta página.</p>`
-    },
-    contacto: {
-      title: 'Contacto', description: 'Canal de contacto de Energía Chile.', body: `<p>Para correcciones de datos, fuentes tarifarias actualizadas o errores en una calculadora, abre un issue público en <a href="https://github.com/falopass/energia-chile/issues" rel="noopener" target="_blank">github.com/falopass/energia-chile/issues</a>.</p><p>Incluye comuna, distribuidora, enlace de la página y captura o pliego si reportas una tarifa. No respondemos cotizaciones comerciales ni instalaciones; el sitio no vende equipos.</p><div class="callout">Usamos un canal público mientras el sitio opera sin dominio propio ni servicios pagos de correo. Las fuentes y la metodología también están publicadas para verificación.</div>`
-    },
-    sobre: {
-      title: 'Sobre nosotros', description: 'Qué es Energía Chile y cómo se financia.', body: `<p>Energía Chile es un proyecto editorial y de datos independiente para hacer más comprensible la electricidad residencial en Chile. No pertenece a distribuidoras, instaladoras ni retailers.</p><p>El sitio combina pliegos tarifarios públicos, climatología NASA POWER y supuestos transparentes. La financiación prevista es publicidad contextual, lo que no altera la fórmula ni el orden de los resultados.</p><p>Nuestro criterio editorial es mostrar supuestos, fecha de vigencia, límites y fuentes antes que entregar una cifra única sin contexto.</p>`
-    },
-    terminos: {
-      title: 'Términos de uso', description: 'Condiciones de uso de Energía Chile.', body: `<p>El contenido es referencial e informativo. No constituye asesoría eléctrica, financiera, tributaria ni de ingeniería. Antes de instalar equipos, modificar una red eléctrica o firmar un contrato, consulta a profesionales habilitados, la SEC y tu distribuidora.</p><p>Aunque se revisan las fuentes, pueden existir errores, cambios tarifarios posteriores o casos especiales. El uso de las calculadoras es bajo tu propia responsabilidad.</p><p>Puedes enlazar las páginas públicas. No está permitido copiar masivamente el sitio, interferir su operación ni presentar los resultados como cotizaciones comerciales.</p>`
-    },
-    faq: {
-      title: 'Preguntas frecuentes', description: 'Preguntas frecuentes sobre tarifas, consumo, BTU y paneles solares en Chile.', body: `<div class="faq"><details open><summary>¿Por qué el precio por kWh cambia tanto entre comunas?</summary><p>Porque la cuenta incluye componentes de generación, transmisión, distribución y cargos públicos. La distribución y pérdidas difieren por territorio, densidad y sistema eléctrico.</p></details><details><summary>¿La boleta de 250 kWh es mi consumo esperado?</summary><p>No. Es una referencia comparable usada para visualizar tarifas. Revisa tu medidor y boleta histórica para conocer tu consumo real.</p></details><details><summary>¿Más BTU siempre es mejor?</summary><p>No. Sobredimensionar puede generar ciclos cortos, peor confort y mayor costo inicial. En inverter, elegir la capacidad cercana a la carga real suele ser más eficiente.</p></details><details><summary>¿Los paneles solares eliminan el cargo fijo?</summary><p>No necesariamente. Mientras la casa siga conectada a la red, el cargo fijo y ciertos cargos no evitables pueden permanecer en la boleta.</p></details><details><summary>¿Puedo usar estos resultados para cotizar?</summary><p>Sí como referencia inicial, pero una cotización real exige revisar techo, sombras, consumos horarios, tablero, orientación y regulación vigente.</p></details></div>`
-    }
-  };
-  const p = pages[kind];
-  const paths = { metodologia: '/metodologia/', fuentes: '/fuentes/', privacidad: '/privacidad/', contacto: '/contacto/', sobre: '/sobre-nosotros/', terminos: '/terminos/', faq: '/preguntas-frecuentes/' };
-  const children = `${breadcrumbs([{ name: 'Inicio', href: '/' }, { name: p.title }])}<section class="page-title container"><h1>${esc(p.title)}</h1></section><section class="section container"><div class="prose card pad-lg">${p.body}</div></section>`;
-  return layout({ origin, path: paths[kind], title: `${p.title} | Energía Chile`, description: p.description, children });
+function hub(data,origin,mode,a=null) {
+  const title=a?`Consumo de ${articleName(a)} por comuna`:mode==='consumo'?'Consumo eléctrico por aparato':mode==='btu'?'Aire y calefacción según tu comuna':'Paneles solares según tu comuna';
+  const path=a?`/consumo-electrico/${a.slug}/`:modes.find(m=>m[0]===mode)[2];
+  const children=`${breadcrumbs([{name:'Inicio',href:'/'},{name:title}])}<section class="hub-heading"><h1>${esc(title)}</h1><p>Elige tu comuna. La tarifa y el clima local ya vienen incorporados; puedes ajustar todos los supuestos.</p>${modePill(null,mode)}${search(null,mode,a?.slug)}</section><section class="section">${mode==='consumo'&&!a?`<h2>¿Qué aparato quieres calcular?</h2><div class="dense-links">${data.appliances.map(ap=>`<a href="/consumo-electrico/${ap.slug}/">${esc(titleCase(ap.name))}</a>`).join('')}</div>`:''}<h2>De norte a sur</h2><div class="commune-directory">${regionalData(data).map(r=>`<section><h3>${esc(r.name)}</h3>${r.communes.map(c=>`<a href="${localPath(mode,c.slug,a?.slug)}"><span>${esc(c.name)}</span><span>${clp(c.tariffs[0].marginalKwh,2)}/kWh</span></a>`).join('')}</section>`).join('')}</div></section>`;
+  return layout({origin,path,title,description:`Calcula ${title.toLowerCase()} con tarifas residenciales BT1 y clima NASA POWER.`,children});
 }
-
-export function notFoundPage(origin) {
-  return layout({ origin, path: '/404/', title: 'Página no encontrada | Energía Chile', description: 'La página solicitada no existe.', children: `<section class="page-title container"><h1>Página no encontrada</h1><p class="lead">La ruta no existe o la comuna no tiene datos tarifarios procesados.</p><div class="hero-actions"><a class="btn" href="/">Volver al inicio</a><a class="btn secondary" href="/comunas/">Ver comunas</a></div></section>` });
+export const consumoHubPage=(d,o)=>hub(d,o,'consumo');
+export const applianceHubPage=(d,a,o)=>hub(d,o,'consumo',a);
+export const btuHubPage=(d,o)=>hub(d,o,'btu');
+export const solarHubPage=(d,o)=>hub(d,o,'solar');
+function directory(data,regions) {
+  return `<div class="atlas"><nav class="region-rail" aria-label="Regiones de norte a sur">${regions.map(r=>`<a href="#${r.slug}" data-region-link>${esc(r.name)}</a>`).join('')}</nav><div>${regions.map(r=>`<section id="${r.slug}" class="atlas-region"><p class="intro">${num(Math.abs(r.lat),1)}°S · media ${clp(r.price,2)}/kWh</p><h2><a href="/region/${r.slug}/">${esc(r.name)}</a></h2><div class="commune-directory">${r.communes.map(c=>`<div class="directory-row"><strong>${esc(c.name)}</strong><span>${clp(c.tariffs[0].marginalKwh,2)}/kWh · ${num(c.calc.climate.ghi,2)} kWh/m²/día</span><nav aria-label="Calcular en ${esc(c.name)}"><a href="/consumo-electrico/refrigerador/${c.slug}/">Consumo</a><a href="/btu/${c.slug}/">BTU</a><a href="/paneles-solares/${c.slug}/">Solar</a></nav></div>`).join('')}</div></section>`).join('')}</div></div>`;
+}
+export function comunasPage(data,origin) {
+  return layout({origin,path:'/comunas/',title:'Comunas de Chile, de norte a sur',description:'328 comunas con tarifas BT1 y clima local. Recorre las regiones de Chile para calcular consumo, BTU y paneles solares.',children:`<section class="hub-heading"><h1>Chile, comuna a comuna.</h1><p>328 lugares. Una tarifa, un clima y decisiones distintas.</p>${search()}</section>${directory(data,regionalData(data))}`});
+}
+export function regionPage(data,slug,origin) {
+  const r=regionalData(data).find(r=>r.slug===slug);
+  if(!r)return null;
+  return layout({origin,path:`/region/${slug}/`,title:`Energía en ${r.name}`,description:`Tarifa BT1 media ${clp(r.price,2)}/kWh en ${r.name}. Compara consumo, climatización y radiación por comuna.`,children:`${breadcrumbs([{name:'Inicio',href:'/'},{name:'Comunas',href:'/comunas/'},{name:r.name}])}<section class="hub-heading"><h1>${esc(r.name)}</h1><p>Tarifa media regional: ${clp(r.price,2)}/kWh. Promedio simple, no máximo.</p></section>${directory(data,[r])}`});
+}
+export function tarifasPage(data,origin) {
+  const regions=regionalData(data),distributors=data.sources.tariffs;
+  const rows=data.communes.flatMap(c=>c.tariffs.map(t=>({c,t}))).sort((a,b)=>a.t.marginalKwh-b.t.marginalKwh);
+  const children=`${breadcrumbs([{name:'Inicio',href:'/'},{name:'Tarifas'}])}<section class="hub-heading"><h1>Tarifas eléctricas residenciales por comuna</h1><p>BT1/BT1A con IVA, vigente al 01-11-2026. Compara todas las distribuidoras presentes en cada comuna.</p></section><section class="section"><div class="tariff-filters"><label>Región<select name="region-filter"><option value="">Todas las regiones</option>${regions.map(r=>`<option value="${r.slug}">${esc(r.name)}</option>`).join('')}</select></label><label>Distribuidora<select name="distributor-filter"><option value="">Todas las distribuidoras</option>${distributors.map(d=>`<option value="${d.distributor}">${esc(d.name)}</option>`).join('')}</select></label></div><p data-filter-status role="status">${rows.length} tarifas disponibles</p><table class="stackable tariff-index"><caption>Precio variable, cargo fijo y boleta tipo con IVA</caption><thead><tr><th>Comuna</th><th>Región</th><th>Distribuidora</th><th>Variable /kWh</th><th>Cargo fijo</th><th>Boleta 250 kWh</th></tr></thead><tbody>${rows.map(({c,t})=>`<tr data-region="${c.regionSlug}" data-distributor="${t.distributor}"><td data-label="Comuna"><a href="/consumo-electrico/refrigerador/${c.slug}/">${esc(c.name)}</a></td><td data-label="Región">${esc(c.region)}</td><td data-label="Distribuidora">${esc(t.distributorName)}</td><td data-label="Variable /kWh">${clp(t.marginalKwh,2)}</td><td data-label="Cargo fijo">${clp(t.fixedMonthly)}</td><td data-label="Boleta 250 kWh">${clp(t.bill250)}</td></tr>`).join('')}</tbody></table><p>Tu dirección determina la distribuidora. <a href="/fuentes/">Consulta los pliegos originales</a>.</p></section>`;
+  return layout({origin,path:'/tarifas/',title:'Tarifas eléctricas residenciales por comuna',description:'Filtra tarifas BT1 de 328 comunas por región y 15 distribuidoras. Precio por kWh, cargo fijo y boleta de 250 kWh.',children,jsonLd:[schema('Dataset',{name:'Tarifas residenciales BT1 por comuna de Chile',description:'Pliegos tarifarios vigentes desde 2026-11-01, con IVA.',temporalCoverage:'2026-11-01',spatialCoverage:'Chile',url:origin+'/tarifas/'})]});
+}
+export function guiasPage(data,origin) {
+  return layout({origin,path:'/guias/',title:'Guías para entender la energía en casa',description:'Consumo eléctrico, BTU, tarifas y netbilling explicados para hogares chilenos.',children:`<section class="editorial-heading"><p class="intro">Lecturas para decidir</p><h1>La cifra es el comienzo.</h1><p>Entiende qué hay detrás de tu consumo, tu clima y tu cuenta de luz.</p></section><section class="section editorial">${guideList(data.guides)}</section>`});
+}
+export function guidePage(g,origin) {
+  return layout({origin,path:g.path,title:g.title,description:g.excerpt,children:`${breadcrumbs([{name:'Inicio',href:'/'},{name:'Guías',href:'/guias/'},{name:g.title}])}<article><header class="editorial-heading"><p class="intro">Guía práctica · actualizado 26-11-2026</p><h1>${esc(g.title)}</h1><p>${esc(g.excerpt)}</p></header><div class="editorial-layout"><div class="prose">${g.body}<p>Fuentes: <a href="/fuentes/">pliegos BT1 01-11-2026, SEC y NASA POWER</a>.</p></div><aside class="margin-note"><h2>En esta lectura</h2><nav>${g.toc.map(t=>`<a href="#${t.id}">${esc(t.label)}</a>`).join('')}</nav></aside></div></article>`,jsonLd:[schema('Article',{headline:g.title,description:g.excerpt,datePublished:'2026-11-26',dateModified:'2026-11-26',author:{'@type':'Organization',name:'Energía Chile'},mainEntityOfPage:origin+g.path})]});
+}
+export function simplePage(kind,origin) {
+  const p=PAGES[kind],path={metodologia:'/metodologia/',fuentes:'/fuentes/',privacidad:'/privacidad/',contacto:'/contacto/',sobre:'/sobre-nosotros/',terminos:'/terminos/',faq:'/preguntas-frecuentes/'}[kind];
+  return layout({origin,path,title:p.title,description:p.description,children:`${breadcrumbs([{name:'Inicio',href:'/'},{name:p.title}])}<section class="editorial-heading"><h1>${esc(p.title)}</h1><p>Actualizado <time datetime="2026-11-26">26-11-2026</time></p></section><section class="section editorial prose">${p.body}<p>Datos tarifarios: 01-11-2026. Clima: NASA POWER 2001–2025.</p></section>`});
+}
+export function notFoundPage(origin,data) {
+  return layout({origin,path:'/404/',title:'Esta comuna no está en el mapa',description:'No encontramos esta página. Busca tu comuna para continuar.',children:`<div class="local-heading"><section><p class="intro">Cursor perdido</p><h1>Esta comuna no está en el mapa</h1><p>La ruta no existe o aún no tenemos datos para ese lugar.</p>${search()}<a href="/">Volver al inicio</a></section>${meridian(data)}</div>`});
 }

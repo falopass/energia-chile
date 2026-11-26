@@ -17,6 +17,7 @@
   "description": "Calculadoras de consumo eléctrico, BTU y paneles solares por comuna de Chile",
   "devDependencies": {
     "esbuild": "^0.27.0",
+    "sharp": "^0.33.5",
     "wrangler": "^4.53.0"
   },
   "private": true,

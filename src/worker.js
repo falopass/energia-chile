@@ -1,7 +1,6 @@
 import DATA from './data/generated.json';
-import styles from './public/styles.css';
-import appJs from './public/app.js';
 import { GUIDES } from './lib/guides.js';
+import { communeIndex } from './lib/local-data.js';
 import {
   homePage, consumoHubPage, applianceHubPage, applianceCommunePage,
   btuHubPage, btuCommunePage, solarHubPage, solarCommunePage,
@@ -28,15 +27,6 @@ function html(body, status = 200, cache = 'public, max-age=3600, s-maxage=86400'
       'permissions-policy': 'camera=(), microphone=(), geolocation=()'
     }
   });
-}
-
-// Icono de 32x32 generado como PNG RGB sin comprimir en origen: evita formatos vectoriales y un archivo binario en el repo.
-const FAVICON_PNG = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAQElEQVR42mPgk7egKWIYtYDWFhzr4kJDoxYMegt2xFqjoVELRi0YtQBmAVPLcTQ0asGoBaMWjFpAOwtG26YYCABSXtMVH2Sy4AAAAABJRU5ErkJggg==';
-
-function favicon() {
-  const binary = atob(FAVICON_PNG);
-  const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
-  return new Response(bytes, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=604800, immutable' } });
 }
 
 function text(body, type = 'text/plain; charset=utf-8', cache = 'public, max-age=3600') {
@@ -74,7 +64,7 @@ function sitemap(origin) {
   const paths = indexablePaths();
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${paths.map(path => `  <url><loc>${esc(origin + path)}</loc><changefreq>${path.split('/').length <= 3 ? 'weekly' : 'monthly'}</changefreq></url>`).join('\n')}
+${paths.map(path => `  <url><loc>${esc(origin + path)}</loc><lastmod>${data.generatedAt.slice(0, 10)}</lastmod><changefreq>${path.split('/').length <= 3 ? 'weekly' : 'monthly'}</changefreq></url>`).join('\n')}
 </urlset>`;
   return text(xml, 'application/xml; charset=utf-8', 'public, max-age=86400');
 }
@@ -86,6 +76,28 @@ Disallow: /health
 
 Sitemap: ${origin}/sitemap.xml
 `);
+}
+
+function llmsTxt(origin) {
+  return `# Energía Chile
+
+> Calculadoras de consumo eléctrico, dimensionamiento BTU y paneles solares netbilling para las 328 comunas de Chile, con tarifas residenciales BT1/BT1A vigentes al 01-11-2026 (pliegos CNE/SEC) y climatología NASA POWER 2001-2025.
+
+## Páginas principales
+- ${origin}/ — portada con buscador de comuna y comparación regional de tarifas
+- ${origin}/consumo-electrico/ — costo mensual de 7 aparatos por comuna
+- ${origin}/btu/ — BTU para enfriar o calefaccionar según clima comunal
+- ${origin}/paneles-solares/ — kWp, ahorro y retorno netbilling por comuna
+- ${origin}/tarifas/ — tabla filtrable de tarifas BT1 por comuna y distribuidora
+- ${origin}/comunas/ — índice de las 328 comunas de norte a sur
+- ${origin}/guias/ — guías prácticas (consumo, BTU, netbilling, boleta)
+- ${origin}/metodologia/ — fórmulas, supuestos y límites
+- ${origin}/fuentes/ — fuentes oficiales con fecha de vigencia
+
+## Datos
+- Índice JSON de comunas: ${origin}/api/comunas.json (nombre, slug, región, latitud, tarifa variable $/kWh, radiación y temperaturas)
+- Valores con IVA, en pesos chilenos, referenciales y editables; no son cotizaciones.
+`;
 }
 
 function adsTxt() {
@@ -141,7 +153,7 @@ function route(path, origin) {
   const simple = staticPageKinds.find(([, p]) => p === path);
   if (simple) return html(simplePage(simple[0], origin));
 
-  return html(notFoundPage(origin), 404, 'no-store');
+  return html(notFoundPage(origin, data), 404, 'no-store');
 }
 
 export default {
@@ -153,9 +165,12 @@ export default {
       return redirect(`${url.pathname}/${url.search}`);
     }
 
-    if (url.pathname === '/assets/styles.css') return text(styles, 'text/css; charset=utf-8', 'public, max-age=86400, immutable');
-    if (url.pathname === '/assets/app.js') return text(appJs, 'text/javascript; charset=utf-8', 'public, max-age=86400, immutable');
-    if (url.pathname === '/favicon.png' || url.pathname === '/favicon.ico') return favicon();
+    if (url.pathname === '/api/comunas.json') {
+      return new Response(JSON.stringify(communeIndex(data)), {
+        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff' }
+      });
+    }
+    if (url.pathname === '/llms.txt') return text(llmsTxt(origin));
     if (url.pathname === '/robots.txt') return robots(origin);
     if (url.pathname === '/sitemap.xml') return sitemap(origin);
     if (url.pathname === '/ads.txt') return adsTxt();
