@@ -41,5 +41,6 @@ npm run submit:indexnow -- --dry-run
 npm run submit:indexnow
 ```
 
-El envío valida sitemap y clave pública y registra el HTTP status. Un envío aceptado no garantiza indexación.
+El envío valida sitemap y clave pública y manda las 3.000 URLs en lotes de 500 (`--batch=N` lo cambia),
+porque la API responde 403 a un único envío de todas. Un envío aceptado no garantiza indexación.
 `ads.txt` usa el editor `pub-4950005977906560`; la aprobación de AdSense y Search Console son pasos externos.

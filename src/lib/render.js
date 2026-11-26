@@ -231,8 +231,8 @@ export function homePage(data, origin) {
   <p class="lead">Calculadoras de consumo eléctrico, BTU y paneles solares con tarifas residenciales reales por comuna, clima local NASA POWER y resultados editables en pesos chilenos.</p>
   <div class="hero-actions"><a class="btn" href="/consumo-electrico/">Calcular consumo</a><a class="btn secondary" href="/paneles-solares/">Estimar paneles solares</a></div>
   ${communeSelector(data, null, '/paneles-solares/{comuna}/')}
-</div><div class="hero-panel"><span class="tag sun">cobertura nacional</span>
-  <div class="studio-heading">OBSERVATORIO RESIDENCIAL <span>CL / 01</span></div>
+</div><div class="hero-panel">
+  <div class="studio-heading">OBSERVATORIO RESIDENCIAL · ${nf.format(data.expectedIndexableUrls)} URLS <span>CL / 01</span></div>
   <div class="energy-profile" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
   <div class="kpi"><div><b>${nf.format(data.communeCount)}</b><br><span>comunas con tarifa residencial procesada</span></div><span>comunas</span></div>
   <div class="kpi"><div><b>${num(sunniest.calc.climate.ghi, 2)}</b><br><span>kWh/m²/día en ${esc(sunniest.name)}, el mejor potencial solar</span></div><span>radiación</span></div>
