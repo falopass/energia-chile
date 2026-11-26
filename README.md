@@ -19,3 +19,27 @@ npm run deploy
 ```
 
 `npm test` construye el Worker y valida las 3.000 URLs, sitemap, robots, ads.txt y páginas clave.
+
+## Frontend Andean Slate & Copper
+
+Identidad pizarra, azul andino y cobre, con acentos cian para BTU, oro solar y verde para ahorro.
+Sin imágenes vectoriales ni emojis. Navegación local entre herramientas, buscador de las 328 comunas,
+contadores animados, radiación NASA POWER en 12 barras CSS y comparaciones de tarifas con fuentes intactas.
+Las animaciones respetan `prefers-reduced-motion`; el contenido permanece visible sin JavaScript.
+
+`npm test` recorre las 3.000 páginas y audita fuentes y bundle. Para probar interacción real:
+
+```bash
+npm run dev -- --port 8795
+npm run test:ui
+```
+
+El test UI usa `agent-browser`. Tras desplegar y verificar producción:
+
+```bash
+npm run submit:indexnow -- --dry-run
+npm run submit:indexnow
+```
+
+El envío valida sitemap y clave pública y registra el HTTP status. Un envío aceptado no garantiza indexación.
+`ads.txt` usa el editor `pub-4950005977906560`; la aprobación de AdSense y Search Console son pasos externos.

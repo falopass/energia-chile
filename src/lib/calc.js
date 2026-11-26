@@ -3,7 +3,7 @@ export const nf1 = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 1, ma
 export const nf2 = new Intl.NumberFormat('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function clp(value, digits = 0) {
-  return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(Math.round(value))}`;
+  return `$${new Intl.NumberFormat('es-CL', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value)}`;
 }
 
 export function num(value, digits = 1) {

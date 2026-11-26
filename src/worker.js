@@ -81,12 +81,7 @@ Sitemap: ${origin}/sitemap.xml
 }
 
 function adsTxt() {
-  return text('# ads.txt preparado para AdSense.\n# Agrega aquí la línea google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0 cuando exista el ID de editor.\n');
-}
-
-function favicon() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#0c7a4b"/><path d="M36 6 15 36h14l-3 22 23-31H34l2-21z" fill="#f6c445"/></svg>`;
-  return text(svg, 'image/svg+xml', 'public, max-age=604800');
+  return text('google.com, pub-4950005977906560, DIRECT, f08c47fec0942fa0\n');
 }
 
 function route(path, origin) {
@@ -152,7 +147,6 @@ export default {
 
     if (url.pathname === '/assets/styles.css') return text(styles, 'text/css; charset=utf-8', 'public, max-age=86400, immutable');
     if (url.pathname === '/assets/app.js') return text(appJs, 'text/javascript; charset=utf-8', 'public, max-age=86400, immutable');
-    if (url.pathname === '/favicon.svg') return favicon();
     if (url.pathname === '/robots.txt') return robots(origin);
     if (url.pathname === '/sitemap.xml') return sitemap(origin);
     if (url.pathname === '/ads.txt') return adsTxt();

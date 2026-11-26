@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { execSync } from 'node:child_process';
+import fs from 'node:fs/promises';
+import { applianceCalculation, btuCalculation, solarCalculation, clp } from '../src/lib/calc.js';
 
 execSync('node scripts/build.mjs', { stdio: 'pipe' });
 const mod = await import('../dist/worker.js');
@@ -9,7 +11,7 @@ assert.equal(paths.length, 3000, `se esperaban 3000 URLs indexables, hay ${paths
 assert.equal(new Set(paths).size, paths.length, 'hay URLs duplicadas');
 
 async function get(path) {
-  const res = await mod.default.fetch(new Request(`http://local.test${path}`), {}, {});
+  const res = await mod.default.fetch(new Request(`https://energia-chile.ddiegosebastianbb.workers.dev${path}`), {}, {});
   const body = await res.text();
   return { res, body };
 }
@@ -36,8 +38,40 @@ for (const [path, needle, status] of checks) {
 
 const { body: sm } = await get('/sitemap.xml');
 assert.equal((sm.match(/<url>/g) || []).length, 3000, 'el sitemap no tiene 3000 URLs');
+assert.equal(new Set([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1])).size, 3000);
+assert.ok([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].every(m => m[1].startsWith('https://energia-chile.ddiegosebastianbb.workers.dev/')));
 const { body: robots } = await get('/robots.txt');
-assert.ok(robots.includes('Sitemap: http://local.test/sitemap.xml'));
+assert.ok(robots.includes('Sitemap: https://energia-chile.ddiegosebastianbb.workers.dev/sitemap.xml'));
 const { body: ads } = await get('/ads.txt');
-assert.ok(ads.includes('pub-XXXXXXXXXXXXXXXX'));
-console.log(`PASS ${paths.length} URLs indexables, sitemap, robots, ads.txt y páginas clave`);
+assert.equal(ads.trim(), 'google.com, pub-4950005977906560, DIRECT, f08c47fec0942fa0');
+const keyPath = '/ec9f4a7c2e8b4d7aa5f6d1c3b9e02741.txt';
+const key = await get(keyPath);
+assert.equal(key.res.status, 200);
+assert.equal(`/${key.body.trim()}.txt`, keyPath);
+
+const forbidden = /<svg|\.svg\b|data:image\/svg|\p{Emoji_Presentation}|\p{Extended_Pictographic}|\uFE0F/iu;
+for (const path of paths) {
+  const { res, body } = await get(path);
+  assert.equal(res.status, 200, path);
+  assert.ok(!/undefined|NaN/.test(body), `${path}: valores inválidos`);
+  assert.ok(!forbidden.test(body), `${path}: imagen vectorial o emoji`);
+  assert.ok(body.includes('class="tool-switch'), `${path}: falta selector de herramientas`);
+}
+for (const dir of ['src', 'dist']) {
+  for (const file of await fs.readdir(dir, { recursive: true })) {
+    if (!/\.(js|css|json)$/.test(file)) continue;
+    const source = await fs.readFile(`${dir}/${file}`, 'utf8');
+    const decoded = source.replace(/\\u\{([0-9a-f]+)\}/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16))).replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    assert.ok(!forbidden.test(decoded), `${dir}/${file}: imagen vectorial o emoji`);
+  }
+}
+const a = applianceCalculation({ watts: 1000, hoursPerDay: 2, priceKwh: 200 });
+assert.equal(a.kwhMonth, 60); assert.equal(a.costMonth, 12000); assert.equal(a.costYear, 144000);
+const b = btuCalculation({ areaM2: 15, climate: { coolingBaseBtuhM2: 500, heatingBaseBtuhM2: 700 }, priceKwh: 200 });
+assert.equal(b.raw, 8076); assert.equal(b.recommended, 9000);
+const s = solarCalculation({ monthlyKwh: 250, ghiDay: 4.8, priceKwh: 200, injectionKwh: 100 });
+// 2400 kWh objetivo / (4,8 * 365 * 0,78) = 1,756 kWp: cuatro paneles de 550 W.
+assert.equal(s.panels, 4); assert.equal(s.installedKwp, 2.2);
+assert.ok(Math.abs(s.generationYear - 3006.432) < 1e-8);
+assert.equal(clp(224.56, 2), '$224,56', 'conservar centavos del precio kWh');
+console.log(`PASS ${paths.length} páginas únicas HTTP 200, 0 SVG/emojis/undefined/NaN, bundle y src auditados; 3 calculadoras, sitemap, robots, ads.txt, IndexNow`);

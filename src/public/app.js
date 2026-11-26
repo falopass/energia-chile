@@ -5,13 +5,38 @@
   const clp = n => `$${money.format(Math.round(n))}`;
   const kwh = n => `${one.format(n)} kWh`;
   const qs = (root, sel) => root.querySelector(sel);
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const animations = new WeakMap();
   const inputNumber = (root, name, fallback = 0) => {
     const el = root.querySelector(`[name="${name}"]`);
     const n = Number(String(el?.value ?? '').replace(',', '.'));
-    return Number.isFinite(n) ? n : fallback;
+    const value = Number.isFinite(n) ? n : fallback;
+    const min = el?.hasAttribute('min') ? Number(el.min) : 0;
+    const max = el?.hasAttribute('max') ? Number(el.max) : Number.MAX_SAFE_INTEGER;
+    return Math.min(max, Math.max(min, value));
   };
   const write = (root, key, value) => {
-    root.querySelectorAll(`[data-out="${key}"]`).forEach(el => { el.textContent = value; });
+    root.querySelectorAll(`[data-out="${key}"]`).forEach(el => {
+      const match = value.match(/^(\$?)([\d.,]+)(.*)$/);
+      if (!match) { el.textContent = value; return; }
+      const target = Number(match[2].replace(/\./g, '').replace(',', '.'));
+      const digits = match[2].includes(',') ? match[2].split(',')[1].length : 0;
+      const formatter = new Intl.NumberFormat('es-CL', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+      const startValue = Number(el.dataset.numeric ?? target);
+      cancelAnimationFrame(animations.get(el));
+      if (reducedMotion.matches || startValue === target) {
+        el.textContent = value; el.dataset.numeric = target; return;
+      }
+      const start = performance.now();
+      const frame = now => {
+        const progress = Math.min(1, (now - start) / 380);
+        const current = startValue + (target - startValue) * (1 - (1 - progress) ** 3);
+        el.dataset.numeric = current;
+        el.textContent = progress === 1 ? value : match[1] + formatter.format(current) + match[3];
+        if (progress < 1) animations.set(el, requestAnimationFrame(frame));
+      };
+      animations.set(el, requestAnimationFrame(frame));
+    });
   };
 
   document.querySelectorAll('[data-calculator="appliance"]').forEach(root => {
@@ -28,6 +53,12 @@
       write(root, 'kwhYear', kwh(kwhMonth * 12));
       write(root, 'costHour', clp(watts / 1000 * price));
       write(root, 'share250', `${one.format(kwhMonth / 250 * 100)}%`);
+      const comparison = root.querySelector('[data-bill]');
+      const bill = Number(comparison?.dataset.bill);
+      if (bill > 0) {
+        write(root, 'billShare', `${one.format(costMonth / bill * 100)}%`);
+        comparison.querySelector('[data-appliance-meter]').style.setProperty('--fill', `${Math.min(100, costMonth / bill * 100)}%`);
+      }
     };
     root.addEventListener('input', update);
     root.addEventListener('change', update);
@@ -102,4 +133,53 @@
       if (select.value) window.location.href = select.value;
     });
   });
+
+  document.querySelectorAll('[data-commune-picker]').forEach(picker => {
+    const search = picker.querySelector('[data-commune-search]');
+    const select = picker.querySelector('[data-jump-select]');
+    const options = Array.from(select.options).slice(1).map(option => option.cloneNode(true));
+    const normalize = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    search.addEventListener('input', () => {
+      const query = normalize(search.value);
+      const filtered = options.filter(option => normalize(option.textContent).includes(query));
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = filtered.length ? 'Selecciona una comuna…' : 'Sin resultados, prueba otro nombre';
+      select.replaceChildren(placeholder, ...filtered.map(option => {
+        const copy = option.cloneNode(true); copy.selected = false; return copy;
+      }));
+      select.value = '';
+      picker.querySelector('[data-search-status]').textContent = `${filtered.length} comunas disponibles`;
+    });
+    search.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (select.options.length === 2) window.location.href = select.options[1].value;
+        else select.focus();
+      }
+    });
+  });
+
+  if ('IntersectionObserver' in window && !reducedMotion.matches) {
+    const reveal = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.remove('reveal-pending', 'motion-pending');
+        entry.target.classList.add('motion-ready');
+        reveal.unobserve(entry.target);
+      });
+    }, { threshold: .08 });
+    document.querySelectorAll('.tool-card,.section-head,.sidebar .card,.chart,.comparison-bars').forEach((el, index) => {
+      el.style.setProperty('--reveal-delay', `${index % 3 * 60}ms`);
+      el.classList.add('reveal-ready', 'reveal-pending');
+      if (el.matches('.chart,.comparison-bars')) el.classList.add('motion-pending');
+      reveal.observe(el);
+    });
+    reducedMotion.addEventListener('change', event => {
+      if (event.matches) {
+        reveal.disconnect();
+        document.querySelectorAll('.reveal-pending,.motion-pending').forEach(el => el.classList.remove('reveal-pending', 'motion-pending'));
+      }
+    });
+  }
 })();
