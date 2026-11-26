@@ -73,7 +73,6 @@ ${paths.map(path => `  <url><loc>${esc(origin + path)}</loc><changefreq>${path.s
 function robots(origin) {
   return text(`User-agent: *
 Allow: /
-Disallow: /assets/
 Disallow: /health
 
 Sitemap: ${origin}/sitemap.xml
