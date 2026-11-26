@@ -48,6 +48,13 @@ const keyPath = '/ec9f4a7c2e8b4d7aa5f6d1c3b9e02741.txt';
 const key = await get(keyPath);
 assert.equal(key.res.status, 200);
 assert.equal(`/${key.body.trim()}.txt`, keyPath);
+for (const iconPath of ['/favicon.png', '/favicon.ico']) {
+  const res = await mod.default.fetch(new Request(`https://energia-chile.ddiegosebastianbb.workers.dev${iconPath}`), {}, {});
+  assert.equal(res.status, 200, iconPath);
+  assert.equal(res.headers.get('content-type'), 'image/png');
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  assert.deepEqual([...bytes.slice(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], `${iconPath}: no es un PNG válido`);
+}
 
 const forbidden = /<svg|\.svg\b|data:image\/svg|\p{Emoji_Presentation}|\p{Extended_Pictographic}|\uFE0F/iu;
 for (const path of paths) {

@@ -14,16 +14,28 @@ assert.equal(new Set(urlList).size, 3000);
 assert.ok(urlList.every(url => url.startsWith(origin + '/')));
 const key = (await get(keyPath)).trim();
 assert.equal(keyPath, `/${key}.txt`, 'La clave debe coincidir con la ruta pública');
-const payload = { host: new URL(origin).host, key, keyLocation: origin + keyPath, urlList };
+const payload = { host: new URL(origin).host, key, keyLocation: origin + keyPath };
+// La API rechaza con 403 un único envío de las 3.000 URLs, pero acepta lotes pequeños.
+const batchSize = Number(process.argv.find(arg => arg.startsWith('--batch='))?.split('=')[1] || 500);
+const batches = [];
+for (let i = 0; i < urlList.length; i += batchSize) batches.push(urlList.slice(i, i + batchSize));
+
 if (process.argv.includes('--dry-run')) {
-  console.log(`DRY RUN: ${urlList.length} URLs únicas; sitemap y clave verificados en producción`);
+  console.log(`DRY RUN: ${urlList.length} URLs únicas en ${batches.length} lotes de hasta ${batchSize}; sitemap y clave verificados en producción`);
 } else {
-  const response = await fetch('https://api.indexnow.org/indexnow', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(60000)
-  });
-  console.log(`IndexNow: HTTP ${response.status}; ${urlList.length} URLs enviadas`);
-  assert.ok([200, 202].includes(response.status), `IndexNow rechazó el envío: HTTP ${response.status}`);
+  const statuses = [];
+  for (const [index, batch] of batches.entries()) {
+    const response = await fetch('https://api.indexnow.org/indexnow', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...payload, urlList: batch }),
+      signal: AbortSignal.timeout(60000)
+    });
+    statuses.push(response.status);
+    console.log(`Lote ${index + 1}/${batches.length}: ${batch.length} URLs, HTTP ${response.status}`);
+    if (index < batches.length - 1) await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+  const rejected = statuses.filter(status => ![200, 202].includes(status));
+  console.log(`IndexNow: ${urlList.length} URLs en ${batches.length} lotes; statuses ${[...new Set(statuses)].join(', ')}`);
+  assert.equal(rejected.length, 0, `IndexNow rechazó ${rejected.length} lotes: ${rejected.join(', ')}`);
 }

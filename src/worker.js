@@ -30,6 +30,15 @@ function html(body, status = 200, cache = 'public, max-age=3600, s-maxage=86400'
   });
 }
 
+// Icono de 32x32 generado como PNG RGB sin comprimir en origen: evita formatos vectoriales y un archivo binario en el repo.
+const FAVICON_PNG = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAQElEQVR42mPgk7egKWIYtYDWFhzr4kJDoxYMegt2xFqjoVELRi0YtQBmAVPLcTQ0asGoBaMWjFpAOwtG26YYCABSXtMVH2Sy4AAAAABJRU5ErkJggg==';
+
+function favicon() {
+  const binary = atob(FAVICON_PNG);
+  const bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+  return new Response(bytes, { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=604800, immutable' } });
+}
+
 function text(body, type = 'text/plain; charset=utf-8', cache = 'public, max-age=3600') {
   return new Response(body, { headers: { 'content-type': type, 'cache-control': cache, 'x-content-type-options': 'nosniff' } });
 }
@@ -146,6 +155,7 @@ export default {
 
     if (url.pathname === '/assets/styles.css') return text(styles, 'text/css; charset=utf-8', 'public, max-age=86400, immutable');
     if (url.pathname === '/assets/app.js') return text(appJs, 'text/javascript; charset=utf-8', 'public, max-age=86400, immutable');
+    if (url.pathname === '/favicon.png' || url.pathname === '/favicon.ico') return favicon();
     if (url.pathname === '/robots.txt') return robots(origin);
     if (url.pathname === '/sitemap.xml') return sitemap(origin);
     if (url.pathname === '/ads.txt') return adsTxt();

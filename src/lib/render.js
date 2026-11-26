@@ -32,6 +32,7 @@ export function layout({ origin, path, title, description, children, jsonLd = []
 ${image ? `<meta property="og:image" content="${esc(abs(origin, image))}">` : ''}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0E1F38">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
 <link rel="stylesheet" href="/assets/styles.css?v=andean-2">
 ${schemas}
 </head>
