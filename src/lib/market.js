@@ -61,7 +61,7 @@ export const heatingComparison = [
     source: 'Seremi de Energía / SERNAC La Araucanía, sondeo 03–05-11-2026; poder energético y rendimiento del estudio de calefacción del Ministerio de Energía.'
   },
   {
-    name: 'Pellet', unit: 'bolsa 15 kg', price: '$3.990–$5.700', energy: '4,8 kWh/kg × 85%', useful: 65.2,
+    name: 'Pellet', unit: 'bolsa 15 kg', price: '$3.990–$5.700', energy: '4,8 kWh/kg × 85%', useful: 65.2, usefulHigh: 93.1,
     source: 'Sodimac Talca $3.990 y Registro Leña Valdivia hasta $5.700, noviembre 2026; MMA informa hasta 4,9 kWh/kg.'
   },
   {
