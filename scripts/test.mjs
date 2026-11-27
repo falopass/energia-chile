@@ -7,7 +7,7 @@ execSync('node scripts/build.mjs', { stdio: 'pipe' });
 const mod = await import('../dist/worker.js');
 assert.equal(typeof mod.indexablePaths, 'function');
 const paths = mod.indexablePaths();
-assert.equal(paths.length, 3006, `se esperaban 3006 URLs indexables, hay ${paths.length}`);
+assert.equal(paths.length, 3025, `se esperaban 3025 URLs indexables, hay ${paths.length}`);
 assert.equal(new Set(paths).size, paths.length, 'hay URLs duplicadas');
 
 const ORIGIN = 'https://energia-chile.ddiegosebastianbb.workers.dev';
@@ -26,6 +26,13 @@ const checks = [
   ['/paneles-solares/temuco/', 'Paneles solares en Temuco', 200],
   ['/tarifas/', 'Tarifas eléctricas residenciales por comuna', 200],
   ['/guias/paneles-solares-netbilling/', 'Netbilling residencial', 200],
+  ['/2027/cuentas-luz/', 'Cuentas de luz 2027', 200],
+  ['/subsidio-electrico/', 'Subsidio Eléctrico 2027', 200],
+  ['/calefaccion/', 'Qué calefacción conviene', 200],
+  ['/pda/', 'Planes de Descontaminación Atmosférica', 200],
+  ['/pda/osorno/', 'restricciones en Osorno', 200],
+  ['/recambio-calefactores/', 'Recambio de calefactores 2026-2027', 200],
+  ['/verano/aire-acondicionado/', 'Cuánto cuesta enfriar', 200],
   ['/metodologia/', 'Metodología de cálculo', 200],
   ['/comuna-inexistente/', 'Esta comuna no está en el mapa', 404]
 ];
@@ -45,9 +52,9 @@ for (const f of ['manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png',
 }
 
 const { body: sm } = await get('/sitemap.xml');
-assert.equal((sm.match(/<url>/g) || []).length, 3006, 'el sitemap no tiene 3006 URLs');
-assert.equal((sm.match(/<lastmod>/g) || []).length, 3006, 'el sitemap no lleva lastmod');
-assert.equal(new Set([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1])).size, 3006);
+assert.equal((sm.match(/<url>/g) || []).length, 3025, 'el sitemap no tiene 3025 URLs');
+assert.equal((sm.match(/<lastmod>/g) || []).length, 3025, 'el sitemap no lleva lastmod');
+assert.equal(new Set([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1])).size, 3025);
 assert.ok([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].every(m => m[1].startsWith(ORIGIN + '/')));
 const { body: robots } = await get('/robots.txt');
 assert.ok(robots.includes(`Sitemap: ${ORIGIN}/sitemap.xml`));
@@ -57,6 +64,14 @@ assert.equal(ads.trim(), 'google.com, pub-4950005977906560, DIRECT, f08c47fec094
 const llms = await get('/llms.txt');
 assert.equal(llms.res.status, 200, '/llms.txt debe existir');
 assert.ok(llms.body.includes('Energía Chile'));
+assert.ok(llms.body.includes('/2027/cuentas-luz/'), 'llms.txt debe incluir cuentas 2027');
+assert.ok(llms.body.includes('/subsidio-electrico/'), 'llms.txt debe incluir subsidio');
+const variation = await get('/api/variacion-2027.json');
+assert.equal(variation.res.status, 200);
+const variationData = JSON.parse(variation.body);
+assert.equal(variationData.nationalAverage, -4.4);
+assert.equal(variationData.regions.length, 16);
+assert.ok(variationData.regions.some(r => r.region === 'Los Ríos' && r.changePercent === 6));
 const api = await get('/api/comunas.json');
 assert.equal(api.res.status, 200);
 const comunas = JSON.parse(api.body);

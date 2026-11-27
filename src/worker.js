@@ -1,11 +1,12 @@
 import DATA from './data/generated.json';
 import { GUIDES } from './lib/guides.js';
 import { communeIndex } from './lib/local-data.js';
+import { EDITORIAL_PAGES, variation2027Json } from './lib/editorial-pages.js';
 import {
   homePage, preciosPage, consumoHubPage, applianceHubPage, applianceCommunePage,
   btuHubPage, btuCommunePage, solarHubPage, solarCommunePage,
   comunasPage, regionPage, tarifasPage, guiasPage, guidePage,
-  simplePage, notFoundPage, esc
+  simplePage, notFoundPage, editorialContentPage, esc
 } from './lib/render.js';
 
 const data = { ...DATA, guides: GUIDES };
@@ -50,6 +51,7 @@ export function indexablePaths() {
     '/', '/consumo-electrico/', '/btu/', '/paneles-solares/', '/comunas/', '/precios/', '/tarifas/', '/guias/',
     '/metodologia/', '/fuentes/', '/privacidad/', '/contacto/', '/sobre-nosotros/', '/terminos/', '/preguntas-frecuentes/'
   ];
+  for (const p of EDITORIAL_PAGES) paths.push(p.path);
   for (const a of data.appliances) paths.push(`/consumo-electrico/${a.slug}/`);
   for (const g of GUIDES) paths.push(g.path);
   for (const regionSlug of new Set(data.communes.map(c => c.regionSlug))) paths.push(`/region/${regionSlug}/`);
@@ -90,6 +92,12 @@ function llmsTxt(origin) {
 - ${origin}/paneles-solares/ — kWp, ahorro y retorno netbilling por comuna
 - ${origin}/precios/ — precios de aparatos, calefacción y kits solares con fecha de consulta
 - ${origin}/tarifas/ — tabla filtrable de tarifas BT1 por comuna y distribuidora
+- ${origin}/2027/cuentas-luz/ — variación regional confirmada para cuentas residenciales 2027
+- ${origin}/subsidio-electrico/ — sexta convocatoria, requisitos y montos conocidos
+- ${origin}/calefaccion/ — comparación de calor útil por sistema
+- ${origin}/pda/ — restricciones PDA y recambio de calefactores por ciudad
+- ${origin}/recambio-calefactores/ — llamados abiertos, copagos y fechas
+- ${origin}/verano/ — aire acondicionado, ventilador y refrigerador en verano
 - ${origin}/comunas/ — índice de las 328 comunas de norte a sur
 - ${origin}/guias/ — guías prácticas (consumo, BTU, netbilling, boleta)
 - ${origin}/metodologia/ — fórmulas, supuestos y límites
@@ -97,6 +105,7 @@ function llmsTxt(origin) {
 
 ## Datos
 - Índice JSON de comunas: ${origin}/api/comunas.json (nombre, slug, región, latitud, tarifa variable $/kWh, radiación y temperaturas)
+- Variación regional 2027 JSON: ${origin}/api/variacion-2027.json (-4,4% promedio nacional, tabla por región, fuentes CNE/Ministerio)
 - Valores con IVA, en pesos chilenos, referenciales y editables; no son cotizaciones.
 `;
 }
@@ -114,6 +123,9 @@ function route(path, origin) {
   if (path === '/precios/') return html(preciosPage(data, origin));
   if (path === '/tarifas/') return html(tarifasPage(data, origin));
   if (path === '/guias/') return html(guiasPage(data, origin));
+
+  const editorial = EDITORIAL_PAGES.find(p => p.path === path);
+  if (editorial) return html(editorialContentPage(editorial, origin));
 
   const regionMatch = path.match(/^\/region\/([a-z0-9-]+)\/$/);
   if (regionMatch) {
@@ -167,6 +179,11 @@ export default {
       return redirect(`${url.pathname}/${url.search}`);
     }
 
+    if (url.pathname === '/api/variacion-2027.json') {
+      return new Response(JSON.stringify(variation2027Json), {
+        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff' }
+      });
+    }
     if (url.pathname === '/api/comunas.json') {
       return new Response(JSON.stringify(communeIndex(data)), {
         headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=86400', 'x-content-type-options': 'nosniff' }
