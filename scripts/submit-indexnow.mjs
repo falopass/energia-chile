@@ -9,13 +9,13 @@ const get = async path => {
 };
 const sitemap = await get('/sitemap.xml');
 const urlList = Array.from(sitemap.matchAll(/<loc>([^<]+)<\/loc>/g), match => match[1]);
-assert.equal(urlList.length, 3000);
-assert.equal(new Set(urlList).size, 3000);
+assert.equal(urlList.length, 3006);
+assert.equal(new Set(urlList).size, 3006);
 assert.ok(urlList.every(url => url.startsWith(origin + '/')));
 const key = (await get(keyPath)).trim();
 assert.equal(keyPath, `/${key}.txt`, 'La clave debe coincidir con la ruta pública');
 const payload = { host: new URL(origin).host, key, keyLocation: origin + keyPath };
-// La API rechaza con 403 un único envío de las 3.000 URLs, pero acepta lotes pequeños.
+// La API rechaza con 403 un único envío de las 3.006 URLs, pero acepta lotes pequeños.
 const batchSize = Number(process.argv.find(arg => arg.startsWith('--batch='))?.split('=')[1] || 500);
 const batches = [];
 for (let i = 0; i < urlList.length; i += batchSize) batches.push(urlList.slice(i, i + batchSize));
