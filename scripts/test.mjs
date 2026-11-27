@@ -7,7 +7,7 @@ execSync('node scripts/build.mjs', { stdio: 'pipe' });
 const mod = await import('../dist/worker.js');
 assert.equal(typeof mod.indexablePaths, 'function');
 const paths = mod.indexablePaths();
-assert.equal(paths.length, 3025, `se esperaban 3025 URLs indexables, hay ${paths.length}`);
+assert.equal(paths.length, 3353, `se esperaban 3353 URLs indexables, hay ${paths.length}`);
 assert.equal(new Set(paths).size, paths.length, 'hay URLs duplicadas');
 
 const ORIGIN = 'https://energia-chile.ddiegosebastianbb.workers.dev';
@@ -29,6 +29,7 @@ const checks = [
   ['/2027/cuentas-luz/', 'Cuentas de luz 2027', 200],
   ['/subsidio-electrico/', 'Subsidio Eléctrico 2027', 200],
   ['/calefaccion/', 'Qué calefacción conviene', 200],
+  ['/calefaccion/temuco/', 'Calefacción en Temuco', 200],
   ['/pda/', 'Planes de Descontaminación Atmosférica', 200],
   ['/pda/osorno/', 'restricciones en Osorno', 200],
   ['/recambio-calefactores/', 'Recambio de calefactores 2026-2027', 200],
@@ -52,9 +53,9 @@ for (const f of ['manifest.webmanifest', 'apple-touch-icon.png', 'icon-192.png',
 }
 
 const { body: sm } = await get('/sitemap.xml');
-assert.equal((sm.match(/<url>/g) || []).length, 3025, 'el sitemap no tiene 3025 URLs');
-assert.equal((sm.match(/<lastmod>/g) || []).length, 3025, 'el sitemap no lleva lastmod');
-assert.equal(new Set([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1])).size, 3025);
+assert.equal((sm.match(/<url>/g) || []).length, 3353, 'el sitemap no tiene 3353 URLs');
+assert.equal((sm.match(/<lastmod>/g) || []).length, 3353, 'el sitemap no lleva lastmod');
+assert.equal(new Set([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1])).size, 3353);
 assert.ok([...sm.matchAll(/<loc>(.*?)<\/loc>/g)].every(m => m[1].startsWith(ORIGIN + '/')));
 const { body: robots } = await get('/robots.txt');
 assert.ok(robots.includes(`Sitemap: ${ORIGIN}/sitemap.xml`));

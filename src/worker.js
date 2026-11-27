@@ -4,7 +4,7 @@ import { communeIndex } from './lib/local-data.js';
 import { EDITORIAL_PAGES, variation2027Json } from './lib/editorial-pages.js';
 import {
   homePage, preciosPage, consumoHubPage, applianceHubPage, applianceCommunePage,
-  btuHubPage, btuCommunePage, solarHubPage, solarCommunePage,
+  btuHubPage, btuCommunePage, solarHubPage, solarCommunePage, heatingCommunePage,
   comunasPage, regionPage, tarifasPage, guiasPage, guidePage,
   simplePage, notFoundPage, editorialContentPage, esc
 } from './lib/render.js';
@@ -25,7 +25,9 @@ function html(body, status = 200, cache = 'public, max-age=3600, s-maxage=86400'
       'cache-control': cache,
       'x-content-type-options': 'nosniff',
       'referrer-policy': 'strict-origin-when-cross-origin',
-      'permissions-policy': 'camera=(), microphone=(), geolocation=()'
+      'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+      'content-security-policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests",
+      'strict-transport-security': 'max-age=31536000; includeSubDomains'
     }
   });
 }
@@ -57,7 +59,7 @@ export function indexablePaths() {
   for (const regionSlug of new Set(data.communes.map(c => c.regionSlug))) paths.push(`/region/${regionSlug}/`);
   for (const c of data.communes) {
     for (const a of data.appliances) paths.push(`/consumo-electrico/${a.slug}/${c.slug}/`);
-    paths.push(`/btu/${c.slug}/`, `/paneles-solares/${c.slug}/`);
+    paths.push(`/btu/${c.slug}/`, `/paneles-solares/${c.slug}/`, `/calefaccion/${c.slug}/`);
   }
   return paths;
 }
@@ -95,6 +97,7 @@ function llmsTxt(origin) {
 - ${origin}/2027/cuentas-luz/ — variación regional confirmada para cuentas residenciales 2027
 - ${origin}/subsidio-electrico/ — sexta convocatoria, requisitos y montos conocidos
 - ${origin}/calefaccion/ — comparación de calor útil por sistema
+- ${origin}/calefaccion/temuco/ — ejemplo comunal; existe para las 328 comunas
 - ${origin}/pda/ — restricciones PDA y recambio de calefactores por ciudad
 - ${origin}/recambio-calefactores/ — llamados abiertos, copagos y fechas
 - ${origin}/verano/ — aire acondicionado, ventilador y refrigerador en verano
@@ -126,6 +129,12 @@ function route(path, origin) {
 
   const editorial = EDITORIAL_PAGES.find(p => p.path === path);
   if (editorial) return html(editorialContentPage(editorial, origin));
+
+  const heatingMatch = path.match(/^\/calefaccion\/([a-z0-9-]+)\/$/);
+  if (heatingMatch) {
+    const c = commune(heatingMatch[1]);
+    if (c) return html(heatingCommunePage(data, c, origin));
+  }
 
   const regionMatch = path.match(/^\/region\/([a-z0-9-]+)\/$/);
   if (regionMatch) {
