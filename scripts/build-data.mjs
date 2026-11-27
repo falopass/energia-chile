@@ -313,8 +313,8 @@ async function main() {
     tariffSnapshot: '2026-11-01',
     communeCount: enriched.length,
     programmaticPageCount: enriched.length * 9,
-    contentPageCount: 48,
-    expectedIndexableUrls: enriched.length * 9 + 48,
+    contentPageCount: 73,
+    expectedIndexableUrls: enriched.length * 9 + 73,
     appliances: APPLIANCES,
     communes: enriched,
     sources: {
