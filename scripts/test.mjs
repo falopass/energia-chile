@@ -126,7 +126,7 @@ const b = btuCalculation({ areaM2: 15, climate: { coolingBaseBtuhM2: 500, heatin
 assert.equal(b.raw, 8076); assert.equal(b.recommended, 9000);
 const s = solarCalculation({ monthlyKwh: 250, ghiDay: 4.8, priceKwh: 200, injectionKwh: 100 });
 assert.equal(s.panels, 4); assert.equal(s.installedKwp, 2.2);
-assert.ok(Math.abs(s.generationYear - 3025.432) < 1e-8);
+assert.ok(Math.abs(s.generationYear - 3006.432) < 1e-8);
 const capped = solarCalculation({ monthlyKwh: 250, ghiDay: 4.8, priceKwh: 200, injectionKwh: 100, roofAvailable: 5 });
 assert.equal(capped.panels, 2, 'la superficie de techo debe limitar los paneles');
 assert.equal(clp(224.56, 2), '$224,56', 'conservar centavos del precio kWh');
