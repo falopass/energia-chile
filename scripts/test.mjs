@@ -30,6 +30,7 @@ const checks = [
   ['/subsidio-electrico/', 'Subsidio Eléctrico 2027', 200],
   ['/calefaccion/', 'Qué calefacción conviene', 200],
   ['/calefaccion/temuco/', 'Calefacción en Temuco', 200],
+  ['/region/la-araucania/', '/calefaccion/temuco/', 200],
   ['/pda/', 'Planes de Descontaminación Atmosférica', 200],
   ['/pda/osorno/', 'restricciones en Osorno', 200],
   ['/recambio-calefactores/', 'Recambio de calefactores 2026-2027', 200],
@@ -104,7 +105,21 @@ for (const path of paths) {
     assert.ok(!body.includes('share250'), `${path}: queda el porcentaje antiguo`);
   }
 }
+for (const [path, question] of [
+  ['/consumo-electrico/refrigerador/independencia/', '¿Cuánto cuesta usar un refrigerador al mes en Independencia?'],
+  ['/btu/puente-alto/', '¿Cuántos BTU necesito para 15 m² en Puente Alto?'],
+  ['/paneles-solares/temuco/', '¿Qué sistema estima la calculadora para Temuco?']
+]) {
+  const { body } = await get(path);
+  const visible = [...body.matchAll(/<details><summary>(.*?)<\/summary>/g)].map(m => m[1]);
+  const schemas = [...body.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].map(m => JSON.parse(m[1]));
+  const faq = schemas.find(x => x['@type'] === 'FAQPage');
+  assert.ok(visible.includes(question), `${path}: falta la FAQ visible`);
+  assert.deepEqual(faq?.mainEntity.map(q => q.name), visible, `${path}: FAQ visible y schema no coinciden`);
+}
+
 const { body: home } = await get('/');
+assert.ok(!/<link rel="preload"[^>]+as="font"/.test(home), 'la home no debe precargar fuentes no críticas');
 assert.ok(!home.includes('<option'), 'la home no debe llevar el <select> de 328 comunas');
 assert.ok(home.includes('data-mode-button'), 'la home necesita el selector de modo');
 assert.ok(home.includes('Tres datos de tu comuna'));
