@@ -2,7 +2,7 @@ import DATA from './data/generated.json';
 import { GUIDES } from './lib/guides.js';
 import { communeIndex } from './lib/local-data.js';
 import {
-  homePage, consumoHubPage, applianceHubPage, applianceCommunePage,
+  homePage, preciosPage, consumoHubPage, applianceHubPage, applianceCommunePage,
   btuHubPage, btuCommunePage, solarHubPage, solarCommunePage,
   comunasPage, regionPage, tarifasPage, guiasPage, guidePage,
   simplePage, notFoundPage, esc
@@ -47,7 +47,7 @@ function appliance(slug) {
 
 export function indexablePaths() {
   const paths = [
-    '/', '/consumo-electrico/', '/btu/', '/paneles-solares/', '/comunas/', '/tarifas/', '/guias/',
+    '/', '/consumo-electrico/', '/btu/', '/paneles-solares/', '/comunas/', '/precios/', '/tarifas/', '/guias/',
     '/metodologia/', '/fuentes/', '/privacidad/', '/contacto/', '/sobre-nosotros/', '/terminos/', '/preguntas-frecuentes/'
   ];
   for (const a of data.appliances) paths.push(`/consumo-electrico/${a.slug}/`);
@@ -88,6 +88,7 @@ function llmsTxt(origin) {
 - ${origin}/consumo-electrico/ — costo mensual de 7 aparatos por comuna
 - ${origin}/btu/ — BTU para enfriar o calefaccionar según clima comunal
 - ${origin}/paneles-solares/ — kWp, ahorro y retorno netbilling por comuna
+- ${origin}/precios/ — precios de aparatos, calefacción y kits solares con fecha de consulta
 - ${origin}/tarifas/ — tabla filtrable de tarifas BT1 por comuna y distribuidora
 - ${origin}/comunas/ — índice de las 328 comunas de norte a sur
 - ${origin}/guias/ — guías prácticas (consumo, BTU, netbilling, boleta)
@@ -110,6 +111,7 @@ function route(path, origin) {
   if (path === '/btu/') return html(btuHubPage(data, origin));
   if (path === '/paneles-solares/') return html(solarHubPage(data, origin));
   if (path === '/comunas/') return html(comunasPage(data, origin));
+  if (path === '/precios/') return html(preciosPage(data, origin));
   if (path === '/tarifas/') return html(tarifasPage(data, origin));
   if (path === '/guias/') return html(guiasPage(data, origin));
 

@@ -112,7 +112,7 @@ function choose(c) {
     home.querySelector('[data-fact="price"]').textContent=clp(c.price,2);
     home.querySelector('[data-fact="ghi"]').textContent=num(c.ghi,2);
     home.querySelector('[data-fact="temp"]').textContent=`${num(c.summer,1)}° / ${num(c.winter,1)}°`;
-    home.querySelector('[data-fact="season"]').textContent='Verano / invierno · °C';
+    home.querySelector('[data-fact="season"]').textContent='Verano / invierno · °C medio';
     home.querySelectorAll('[data-fact-link]').forEach(a=>a.href=localPath(a.dataset.factLink,c.slug,searchRoot.dataset.appliance));
     setMeridian(c);
   }
