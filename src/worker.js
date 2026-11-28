@@ -100,7 +100,8 @@ function llmsTxt(origin) {
 - ${origin}/calefaccion/temuco/ — ejemplo comunal; existe para las 328 comunas
 - ${origin}/pda/ — restricciones PDA y recambio de calefactores por ciudad
 - ${origin}/recambio-calefactores/ — llamados abiertos, copagos y fechas
-- ${origin}/verano/ — aire acondicionado, ventilador y refrigerador en verano
+- ${origin}/verano/ — aire acondicionado, ventilador, refrigerador y solar netbilling en verano
+- ${origin}/2027/como-leer-cambio-tarifa/ — cómo comprobar el cambio tarifario en la boleta
 - ${origin}/comunas/ — índice de las 328 comunas de norte a sur
 - ${origin}/guias/ — guías prácticas (consumo, BTU, netbilling, boleta)
 - ${origin}/metodologia/ — fórmulas, supuestos y límites
