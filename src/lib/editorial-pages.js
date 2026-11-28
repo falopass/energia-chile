@@ -39,7 +39,9 @@ const SOURCE = {
   indicesCalefaccion: ['Ministerio de Energía, índices de precios de calefacción', 'https://indicesdeprecios.energia.gob.cl/calefaccion.html'],
   etiquetaAire: ['SEC, Protocolo PE 1/26/2:2020 de acondicionadores de aire', 'https://www.sec.cl/sitio-web/wp-content/uploads/2020/04/PE-1-26-2-EE-Acondicionadores-de-Aire_Eficiencia_2020.pdf'],
   etiquetaRefrigerador: ['SEC, Protocolo PE 1/17/2:2022 de refrigeradores', 'https://wlhttp.sec.cl/PublicacionProductos/adjunto?ac=verDocProt&id=429'],
-  secCertificacion: ['SEC, sistema de certificación de productos', 'https://www.sec.cl/sistema-de-certificacion-de-productos-sec/']
+  secCertificacion: ['SEC, sistema de certificación de productos', 'https://www.sec.cl/sistema-de-certificacion-de-productos-sec/'],
+  ley20571: ['Ley 20.571, generadoras residenciales e inyecciones', 'https://www.bcn.cl/leychile/navegar?idNorma=1038211'],
+  ds71: ['Ministerio de Energía, Decreto Supremo 71 de generación distribuida', 'https://generaciondistribuida.minenergia.cl/documentos/decreto-supremo-ndeg71']
 };
 
 const pct = value => `${value > 0 ? '+' : ''}${String(value).replace('.', ',')}%`;
@@ -58,7 +60,7 @@ export const cuentasLuz2027Page = page({
   sections: [
     ['tabla', 'La tabla regional completa', `<p>El promedio nacional es una referencia, no una rebaja automática e idéntica en cada boleta. El porcentaje regional proviene del Precio Nudo Promedio y la aplicación final depende de los pliegos de cada distribuidora.</p>${regionalTable}<p>Las alzas de Los Ríos y Los Lagos se explican por congestión de transmisión asociada al retraso de obras, en particular Cautín-Ciruelos. Magallanes usa sistemas medianos y variables distintas al Sistema Eléctrico Nacional.</p>`],
     ['por-que-baja', 'Por qué baja el promedio nacional', '<p>El Ministerio de Energía atribuye la baja al término de contratos de suministro suscritos en 2008 y 2010, con precios cercanos a US$100/MWh, y su reemplazo por contratos adjudicados en 2022, 2023 y 2025 con promedio cercano a US$67/MWh. También incide un saldo a favor por tipo de cambio.</p><p>La cifra definitiva de -4,4% corrige levemente el -4,3% del informe preliminar. Revisa la tabla anterior antes de generalizar: en tres regiones la cuenta sube.</p>'],
-    ['boleta', 'Qué hacer con esta cifra', '<p>No multipliques tu boleta total por el porcentaje regional como si fuera un descuento final. Primero identifica consumo en kWh, distribuidora y tarifa. Después compara el pliego vigente cuando se publique para enero de 2027.</p><p>Si tu hogar puede postular al Subsidio Eléctrico, prepara Registro Social de Hogares, ClaveÚnica y número de cliente antes del 7 de diciembre.</p><p><a href="/tarifas/">Ver tarifas BT1 vigentes</a> · <a href="/subsidio-electrico/">Revisar Subsidio Eléctrico</a> · <a href="/guias/como-leer-tu-boleta-de-luz/">Aprender a leer la boleta</a></p>']
+    ['boleta', 'Qué hacer con esta cifra', '<p>No multipliques tu boleta total por el porcentaje regional como si fuera un descuento final. Primero identifica consumo en kWh, distribuidora y tarifa. Después compara el pliego vigente cuando se publique para enero de 2027.</p><p>Si tu hogar puede postular al Subsidio Eléctrico, prepara Registro Social de Hogares, ClaveÚnica y número de cliente antes del 7 de diciembre.</p><p><a href="/tarifas/">Ver tarifas BT1 vigentes</a> · <a href="/subsidio-electrico/">Revisar Subsidio Eléctrico</a> · <a href="/guias/como-leer-tu-boleta-de-luz/">Aprender a leer la boleta</a> · <a href="/2027/como-leer-cambio-tarifa/">Cómo leer el cambio de enero</a></p>']
   ],
   faqs: [
     ['¿Cuánto bajará la cuenta de la luz en 2027?', 'El promedio nacional bajaría 4,4% desde enero de 2027. La rebaja alcanza 13 regiones y las mayores bajas informadas son Antofagasta 11%, Atacama 10,2% y Arica y Parinacota 9,9%.'],
@@ -122,7 +124,7 @@ const pdaCities = [
     links: [['BTU en Temuco', '/btu/temuco/'], ['BTU en Padre Las Casas', '/btu/padre-las-casas/']]
   },
   {
-    slug: 'osorno', name: 'Osorno', region: 'Los Lagos', decree: 'DS 47/2015', period: 'temporada GEC 2026 según plan operacional', population: '161.460 personas',
+    slug: 'osorno', name: 'Osorno', region: 'Los Lagos', decree: 'DS 47/2015, publicado en 2016', period: 'temporada GEC 2026 según plan operacional', population: '161.460 personas',
     url: 'https://ppda.mma.gob.cl/los-lagos/pda-para-la-comuna-de-osorno/',
     zone: 'La resolución 01684/2026 define polígonos territoriales de gestión; las medidas se aplican según polígono y nivel de episodio.',
     restrictions: 'El plan operacional contempla prohibición de quemas, control de humos visibles y restricciones de artefactos a leña en viviendas según alerta, preemergencia y emergencia.',
@@ -285,9 +287,9 @@ export const veranoHubPage = page({
   path: '/verano/',
   title: 'Energía en verano: aire acondicionado, ventilador y refrigerador',
   description: 'Guías de verano para Chile: cuánto cuesta enfriar una casa, cuándo basta un ventilador y cómo cambia el consumo del refrigerador.',
-  answer: 'En verano el mayor salto de consumo suele venir del aire acondicionado, no del ventilador ni del refrigerador. Un split de 12.000 BTU usado tres horas diarias consume unos 32,7 kWh al mes; un ventilador de pie usado seis horas diarias consume cerca de 10,8 kWh.',
+  answer: 'En verano el mayor salto de consumo suele venir del aire acondicionado, no del ventilador ni del refrigerador. Un split de 12.000 BTU usado tres horas diarias consume unos 98,1 kWh al mes; un ventilador de pie usado seis horas diarias consume cerca de 10,8 kWh.',
   sections: [
-    ['decidir', 'Qué revisar primero', '<p>Calcula la carga térmica antes de comprar. Una pieza de 15 m² no necesita el mismo equipo que un living abierto con ventanas al poniente. Sobredimensionar sube el precio de compra y puede producir ciclos cortos.</p><p><a href="/verano/aire-acondicionado/">Costo de aire acondicionado</a> · <a href="/verano/ventilador-o-aire-acondicionado/">Ventilador o split</a> · <a href="/verano/refrigerador/">Refrigerador en verano</a></p>'],
+    ['decidir', 'Qué revisar primero', '<p>Calcula la carga térmica antes de comprar. Una pieza de 15 m² no necesita el mismo equipo que un living abierto con ventanas al poniente. Sobredimensionar sube el precio de compra y puede producir ciclos cortos.</p><p><a href="/verano/aire-acondicionado/">Costo de aire acondicionado</a> · <a href="/verano/ventilador-o-aire-acondicionado/">Ventilador o split</a> · <a href="/verano/refrigerador/">Refrigerador en verano</a> · <a href="/verano/etiqueta-sec-aire-acondicionado/">Etiqueta SEC del split</a> · <a href="/verano/paneles-solares-netbilling/">Solar y netbilling en verano</a></p>'],
     ['ola-de-calor', 'Durante una ola de calor', '<p>Cierra cortinas en horas de sol directo, ventila cuando la temperatura exterior baje y usa el ventilador para mover aire sobre las personas. Si usas split, una consigna de 23-25 °C y filtros limpios evita consumo innecesario.</p>'],
     ['black-friday', 'Compras de fin de año', '<p>El Black Friday oficial de la CCS en 2026 se realiza del 27 al 30 de noviembre. Antes de mirar el descuento, compara consumo declarado, eficiencia, instalación, garantía y costo anual en tu comuna.</p><p><a href="/precios/">Precios observados el 27-11-2026</a> · <a href="/btu/">Calcular BTU por comuna</a></p>']
   ],
@@ -303,7 +305,7 @@ export const veranoAirePage = page({
   description: 'Costo mensual de un split inverter por horas de uso, ejemplo de 12.000 BTU, instalación y criterios para comprar antes del verano.',
   answer: 'Como referencia, un split de 12.000 BTU que consume en promedio 1 kW y se usa seis horas diarias durante 30 días gasta 180 kWh. A $268,22/kWh serían unos $48.280 mensuales. Un inverter eficiente o menos horas puede bajar bastante ese valor.',
   sections: [
-    ['escenarios', 'Escenarios de consumo', table('Consumo estimado con tarifa media nacional $268,22/kWh; calcula el valor exacto con tu comuna', ['Uso', 'Potencia media', 'kWh/mes', 'Costo medio'], [['3 h/día, split 12.000 BTU', '1,09 kW', '32,7', '$8.771'], ['6 h/día, split 12.000 BTU', '1,0 kW', '180', '$48.280'], ['6 h/día, ventilador 60 W', '0,06 kW', '10,8', '$2.897']])],
+    ['escenarios', 'Escenarios de consumo', table('Consumo estimado con tarifa media nacional $268,22/kWh; calcula el valor exacto con tu comuna', ['Uso', 'Potencia media', 'kWh/mes', 'Costo medio'], [['3 h/día, split 12.000 BTU', '1,09 kW', '98,1', '$26.312'], ['6 h/día, split 12.000 BTU', '1,0 kW', '180', '$48.280'], ['6 h/día, ventilador 60 W', '0,06 kW', '10,8', '$2.897']])],
     ['btu', 'No compres solo por precio', '<p>La capacidad correcta depende de superficie, altura, orientación, ventanas, aislación y temperatura comunal. En norte y verano extremo la carga sube; una pieza bien aislada puede necesitar menos.</p><p><a href="/btu/">Calcular BTU en mi comuna</a></p>'],
     ['compra', 'Qué mirar en una oferta', '<ul><li>Etiqueta de eficiencia y protocolo SEC aplicable.</li><li>Potencia frío/calor y tecnología inverter.</li><li>Si la instalación incluye cañería, soporte, cableado y tablero.</li><li>Garantía, repuestos y servicio técnico en tu ciudad.</li></ul><p>En Sodimac se observó un split Samsung Essential inverter de 9.000 BTU a $289.990 el 27-11-2026 y una categoría de 9.000 BTU entre $279.990 y $369.990. Son observaciones de retail, no ofertas permanentes.</p>']
   ],
@@ -318,9 +320,9 @@ export const veranoVentiladorPage = page({
   path: '/verano/ventilador-o-aire-acondicionado/',
   title: 'Ventilador o aire acondicionado: cuánto gasta cada uno',
   description: 'Comparación de consumo, costo mensual y confort entre ventilador de pie y split inverter para decidir en verano.',
-  answer: 'Un ventilador de 60 W usado seis horas diarias consume 10,8 kWh al mes, cerca de $2.897 con tarifa media nacional. Un split de 12.000 BTU usado tres horas diarias puede consumir 32,7 kWh, cerca de $8.771. El ventilador no enfría el aire, pero cuesta mucho menos.',
+  answer: 'Un ventilador de 60 W usado seis horas diarias consume 10,8 kWh al mes, cerca de $2.897 con tarifa media nacional. Un split de 12.000 BTU usado tres horas diarias puede consumir 98,1 kWh, cerca de $26.312. El ventilador no enfría el aire, pero cuesta mucho menos.',
   sections: [
-    ['tabla', 'Comparación directa', table('Supuestos de uso doméstico; tarifa media nacional $268,22/kWh', ['Equipo', 'Uso', 'kWh/mes', 'Costo medio', 'Qué hace'], [['Ventilador de pie 60 W', '6 h/día', '10,8', '$2.897', 'Mueve aire y mejora sensación térmica'], ['Split inverter 12.000 BTU', '3 h/día', '32,7', '$8.771', 'Enfría y deshumidifica el ambiente'], ['Split usado intenso', '6 h/día a 1 kW', '180', '$48.280', 'Enfría por más horas']])],
+    ['tabla', 'Comparación directa', table('Supuestos de uso doméstico; tarifa media nacional $268,22/kWh', ['Equipo', 'Uso', 'kWh/mes', 'Costo medio', 'Qué hace'], [['Ventilador de pie 60 W', '6 h/día', '10,8', '$2.897', 'Mueve aire y mejora sensación térmica'], ['Split inverter 12.000 BTU', '3 h/día', '98,1', '$26.312', 'Enfría y deshumidifica el ambiente'], ['Split usado intenso', '6 h/día a 1 kW', '180', '$48.280', 'Enfría por más horas']])],
     ['decidir', 'Cuándo basta el ventilador', '<p>Basta cuando el problema es sensación de calor moderada, hay circulación de aire y puedes ventilar al bajar la temperatura exterior. No basta cuando la humedad o la temperatura interior sostenida afecta descanso, salud o trabajo.</p>'],
     ['combinar', 'Combinar antes que sobredimensionar', '<p>Usar ventilador junto al split permite una consigna más alta y repartir el aire. También reduce la tentación de comprar un equipo más grande del necesario.</p><p><a href="/consumo-electrico/ventilador/">Consumo del ventilador por comuna</a> · <a href="/consumo-electrico/aire-acondicionado/">Consumo del aire por comuna</a></p>']
   ],
@@ -348,6 +350,58 @@ export const veranoRefrigeradorPage = page({
   sources: [SOURCE.etiquetaRefrigerador, SOURCE.secCertificacion]
 });
 
+
+export const veranoSecAirePage = page({
+  path: '/verano/etiqueta-sec-aire-acondicionado/',
+  title: 'Aire acondicionado: cómo leer la etiqueta SEC antes de comprar',
+  description: 'Protocolo SEC PE 1/26/2:2020, eficiencia, BTU y consumo estimado para comparar un split sin confundir capacidad térmica con consumo eléctrico.',
+  answer: 'Antes de comprar un split, compara capacidad en BTU, tecnología inverter, eficiencia declarada y consumo eléctrico de entrada; la etiqueta SEC ordena modelos bajo una norma común, pero no entrega el consumo exacto de tu casa. Con 1,09 kW de entrada y tres horas diarias durante 30 días, un equipo de 12.000 BTU consumiría 98,1 kWh al mes antes de considerar modulación real.',
+  sections: [
+    ['norma', 'Qué certifica la SEC', `<p>El protocolo PE 1/26/2:2020 establece el procedimiento de certificación y etiquetado de eficiencia energética para acondicionadores de aire en Chile. Sirve para comparar modelos en condiciones de ensayo comunes; no mide tu pieza, tu instalación ni tus horas de uso.</p><p>Revisa que el modelo esté certificado y que la capacidad declarada corresponda al mismo modelo de la oferta. Una capacidad de 12.000 BTU/h equivale a unos 3,52 kW térmicos, no a 12 kW eléctricos.</p>`],
+    ['calculo', 'Del consumo de entrada a la boleta', table('Escenarios editoriales con tarifa media simple $268,22/kWh; no son medición SEC', ['Escenario', 'Cálculo', 'kWh/mes', 'Costo medio'], [['12.000 BTU, 3 h/día', '1,09 kW × 3 × 30', '98,1', '$26.312'], ['12.000 BTU, 1 h/día', '1,09 kW × 1 × 30', '32,7', '$8.771'], ['Ventilador 60 W, 6 h/día', '0,06 kW × 6 × 30', '10,8', '$2.897']]) + `<p>Un inverter puede modular después de llegar a la temperatura, por lo que el consumo real puede ser menor o mayor según carga, consigna y aislación. La potencia de entrada sirve como referencia prudente, no como promesa.</p>`],
+    ['compra', 'Lista corta antes de pagar', `<ul><li>Capacidad calculada para superficie, orientación, ventanas y clima comunal.</li><li>Etiqueta y certificación SEC del modelo exacto.</li><li>Instalación con cañería, soporte, cableado, tablero y garantía escritos.</li><li>Costo anual estimado con tu tarifa comunal, no solo descuento del retail.</li></ul><p><a href="/btu/">Calcular BTU en mi comuna</a> · <a href="/verano/aire-acondicionado/">Costo de enfriar en verano</a> · <a href="/precios/">Precios observados</a></p>`]
+  ],
+  faqs: [
+    ['¿La etiqueta SEC me dice cuánto gastará el aire acondicionado en mi casa?', 'No. Entrega una comparación bajo condiciones normalizadas. Tu consumo depende de horas, carga térmica, instalación, temperatura de consigna, aislación y modulación inverter.'],
+    ['¿12.000 BTU significan 12 kW eléctricos?', 'No. 12.000 BTU/h son unos 3,52 kW de capacidad térmica. La potencia eléctrica de entrada puede ser cercana a 1 kW en un equipo eficiente, pero cambia según modelo y operación.']
+  ],
+  sources: [SOURCE.etiquetaAire, SOURCE.secCertificacion]
+});
+
+export const veranoSolarNetbillingPage = page({
+  path: '/verano/paneles-solares-netbilling/',
+  title: 'Paneles solares en verano: autoconsumo, inyección y netbilling',
+  description: 'Por qué el verano mejora la generación solar pero no todo el kWh vale lo mismo: autoconsumo instantáneo, inyecciones valorizadas y decisiones antes de instalar.',
+  answer: 'En verano un sistema solar suele generar más, pero el ahorro depende de cuánta energía usas al mediodía. El autoconsumo evita pagar tu tarifa variable completa; la inyección se valora al precio que la distribuidora traspasa a clientes regulados, más menores pérdidas, conforme a la Ley 20.571. Por eso un sistema sobredimensionado para tu consumo diurno puede devolver menos de lo esperado.',
+  sections: [
+    ['valor', 'Dos valores distintos para el mismo kWh', `<p>En una boleta residencial, el kWh autoconsumido evita una compra a la red. El kWh inyectado se descuenta bajo las reglas de generación distribuida. Como parte de la tarifa variable paga distribución, transmisión y otros cargos, la inyección no equivale a vender al precio total que pagas como cliente.</p><p>Ejemplo editorial con valores de Santiago usados por el sitio: si 100 kWh solares se dividen en 70 kWh autoconsumidos y 30 kWh inyectados, el beneficio sería 70 × $243,57 + 30 × $162,04 = <strong>$21.911</strong>. Si los 100 kWh se autoconsumieran, sería $24.357. El caso real cambia por comuna y pliego.</p>`],
+    ['verano', 'Qué cambia en verano', `<p>Hay más horas solares y mayor radiación, pero también puede aumentar el consumo por aire acondicionado, refrigerador, bomba de piscina o teletrabajo. Ese consumo diurno no es un problema para el retorno: al contrario, puede subir el autoconsumo instantáneo y hacer que cada kWh valga más.</p><p>Antes de dimensionar, revisa 12 meses de kWh y separa consumo diurno probable. Si tu casa está vacía al mediodía, no asumas 100% de autoconsumo.</p>`],
+    ['tramite', 'Qué verificar antes de instalar', `<ul><li>Instalador habilitado, diseño de protecciones y declaración SEC cuando corresponda.</li><li>Medidor bidireccional y proceso de conexión con la distribuidora.</li><li>Producción mensual estimada, sombras, orientación norte y superficie útil.</li><li>Valor de inyección del pliego local y tratamiento de remanentes.</li></ul><p><a href="/paneles-solares/">Calcular paneles en mi comuna</a> · <a href="/guias/paneles-solares-netbilling/">Guía base de netbilling</a> · <a href="/precios/">Kits solares observados</a></p>`]
+  ],
+  faqs: [
+    ['¿Los paneles solares devuelven toda la tarifa de la boleta?', 'No. El autoconsumo evita comprar energía a la tarifa variable, pero las inyecciones se valoran con reglas propias. Además, el cargo fijo sigue existiendo mientras mantengas la conexión.'],
+    ['¿Conviene cubrir el 100% anual con paneles?', 'No siempre. Si muchos excedentes se inyectan a un valor menor que tu tarifa de compra, el retorno marginal baja. El dimensionamiento correcto depende de consumo diurno, techo, tarifa y presupuesto.']
+  ],
+  sources: [SOURCE.ley20571, SOURCE.ds71, SOURCE.secCertificacion]
+});
+
+export const cambioTarifa2027Page = page({
+  path: '/2027/como-leer-cambio-tarifa/',
+  title: 'Enero 2027: cómo leer el cambio de tarifas en tu boleta',
+  description: 'Pasos para comprobar si la variación de enero de 2027 llegó correctamente a tu cuenta: kWh, distribuidora, pliego, cargo fijo, subsidio y diferencias regionales.',
+  answer: 'Para verificar el cambio de enero de 2027 no compares solo el total de dos boletas. Compara primero kWh y días facturados, luego distribuidora y opción tarifaria, y finalmente el pliego vigente. El promedio nacional informado es -4,4%, pero Los Ríos, Los Lagos y Magallanes tienen alzas promedio y tu distribuidora puede moverse distinto.',
+  sections: [
+    ['orden', 'Comparación en el orden correcto', `<ol><li>Normaliza por día: divide los kWh de cada boleta por los días facturados.</li><li>Confirma distribuidora y tarifa BT1/BT1A: una misma comuna puede tener más de una empresa.</li><li>Revisa el nuevo pliego oficial y separa cargo fijo, energía, distribución, transmisión y servicio público si están desagregados.</li><li>Descarta subsidios, convenios, lecturas estimadas, deuda o recargos antes de atribuir el cambio a tarifa.</li></ol><p>Si tu consumo sube por aire acondicionado o un nuevo equipo, la boleta puede subir aunque la tarifa baje.</p>`],
+    ['regional', 'Qué significa el porcentaje regional', `<p>La variación regional es un promedio residencial informado junto al Informe Técnico Definitivo del Precio Nudo Promedio. No es una rebaja directa e idéntica en cada pliego. Antofagasta aparece con -11%, la Metropolitana con -4% y Los Ríos con +6%; esas cifras orientan la lectura, pero no reemplazan el pliego de tu distribuidora.</p><p><a href="/2027/cuentas-luz/">Ver tabla regional completa</a> · <a href="/tarifas/">Tarifas BT1 vigentes por comuna</a></p>`],
+    ['datos-no-publicados', 'Si el dato aún no está publicado', `<p>Si el pliego de enero de tu distribuidora no está disponible al consultar, no inventes el porcentaje. Usa la boleta anterior como línea base, guarda los kWh y espera la publicación de CNE o de la distribuidora. La página de cuentas 2027 indica cuándo una cifra es promedio regional y cuándo todavía no puede calcularse a nivel de cliente.</p><p>El Subsidio Eléctrico se aplica como descuento separado durante el primer semestre de 2027; no debe confundirse con la variación tarifaria.</p>`]
+  ],
+  faqs: [
+    ['¿Mi cuenta bajará exactamente el porcentaje regional?', 'No necesariamente. El porcentaje es promedio. La boleta final cambia con kWh, días facturados, pliego de la distribuidora, cargo fijo, subsidios, convenios y consumo estacional.'],
+    ['¿Por qué mi cuenta subió si la prensa informó baja?', 'Puede deberse a mayor consumo, más días facturados, lectura estimada, distribuidora con variación distinta o a que tu región está dentro de las alzas informadas. Compara kWh por día y el pliego antes de atribuirlo a tarifa.']
+  ],
+  sources: [SOURCE.itd, SOURCE.resolucion650, SOURCE.baja2027, SOURCE.portalSubsidio]
+});
+
 export const EDITORIAL_PAGES = [
   cuentasLuz2027Page,
   subsidioElectricoPage,
@@ -360,7 +414,10 @@ export const EDITORIAL_PAGES = [
   veranoHubPage,
   veranoAirePage,
   veranoVentiladorPage,
-  veranoRefrigeradorPage
+  veranoRefrigeradorPage,
+  veranoSecAirePage,
+  veranoSolarNetbillingPage,
+  cambioTarifa2027Page
 ];
 
 export const variation2027Json = {
