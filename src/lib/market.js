@@ -41,7 +41,7 @@ export const appliancePrices = [
     slug: 'aire-acondicionado', name: 'Split inverter 9.000–24.000 BTU', range: '$269.990–$949.990', retailer: 'Sodimac',
     source: 'https://www.sodimac.cl/sodimac-cl/lista/cat7830014/Split',
     note: '9.000 BTU desde $269.990; 24.000 BTU entre $449.990 y $949.990 según marca.',
-    kwhMonth: 32.7, consumption: '32,7 kWh/mes · 12.000 BTU, 3 h/día'
+    kwhMonth: 98.1, consumption: '98,1 kWh/mes · 12.000 BTU, 3 h/día'
   },
   {
     slug: 'estufa-electrica', name: 'Estufa eléctrica o convector', range: '$39.990–$193.990', retailer: 'Sodimac',
